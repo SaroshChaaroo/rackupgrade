@@ -682,10 +682,11 @@
       const cat = categories.find(c => c.id === actionEl.dataset.parent);
       if (!cat) return;
       if (!cat.subsections) cat.subsections = [];
-      cat.subsections.push({ id: uid(), name: '', steps: emptySteps() });
+      const newSub = { id: uid(), name: '', steps: emptySteps() };
+      cat.subsections.push(newSub);
       cat.lastEditedAt = Date.now();
       renderRack();
-      const focusInput = rackList.querySelector(`.subsection-list[data-parent="${cat.id}"] .sub-row:last-of-type .f-name`);
+      const focusInput = rackList.querySelector(`.sub-row[data-id="${newSub.id}"] .f-name`);
       if (focusInput) focusInput.focus();
       queueSave();
       return;
@@ -770,10 +771,11 @@
   });
 
   document.getElementById('addCategory').addEventListener('click', () => {
-    categories.push({ id: uid(), name: '', target: '', subsections: [], steps: emptySteps(), lastEditedAt: Date.now() });
+    const newCat = { id: uid(), name: '', target: '', subsections: [], steps: emptySteps(), lastEditedAt: Date.now() };
+    categories.push(newCat);
     renderRack();
-    const inputs = rackList.querySelectorAll('.cat-row .f-name');
-    if (inputs.length) inputs[inputs.length - 1].focus();
+    const focusInput = rackList.querySelector(`.cat-row[data-id="${newCat.id}"] .f-name`);
+    if (focusInput) focusInput.focus();
     queueSave();
   });
 
