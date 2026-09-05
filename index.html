@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Janatha Medicals — Upgrade Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EAE3D2;
+    --card: #F7F2E4;
+    --card-line: #DAD0B6;
+    --ink: #22302A;
+    --ink-soft: #6B7A70;
+    --amber: #B8721F;
+    --amber-deep: #8F5A18;
+    --amber-wash: rgba(184,114,31,0.09);
+    --green: #3D6B54;
+    --green-deep: #2A4A38;
+    --green-wash: rgba(61,107,84,0.09);
+    --brick: #A8412D;
+    --line: #C7BEA0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    background-image:
+      linear-gradient(var(--card-line) 1px, transparent 1px);
+    background-size: 100% 32px;
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    padding: 28px 16px 60px;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+
+  header { margin-bottom: 28px; }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber-deep);
+    margin-bottom: 6px;
+  }
+  h1 {
+    font-family: 'Spectral', serif;
+    font-weight: 700;
+    font-size: clamp(26px, 5vw, 36px);
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .subtitle { color: var(--ink-soft); font-size: 14px; max-width: 60ch; line-height: 1.5; }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--card-line);
+    border-radius: 4px;
+    padding: 20px 20px 16px;
+    margin-bottom: 22px;
+    position: relative;
+  }
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 10px; bottom: 10px; left: 0;
+    width: 3px;
+    background: var(--amber);
+    border-radius: 0 2px 2px 0;
+  }
+  .panel.budget::before { background: var(--green); }
+
+  .panel-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+  .panel-title {
+    font-family: 'Spectral', serif;
+    font-weight: 600;
+    font-size: 19px;
+  }
+  .panel-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  /* gauge */
+  .gauge-row { margin: 12px 0 18px; }
+  .gauge {
+    position: relative;
+    height: 14px;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+    background:
+      repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 10%),
+      #EFE9D9;
+  }
+  .gauge-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green-deep), var(--green));
+    transition: width 0.35s ease;
+  }
+  .gauge-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-top: 5px;
+  }
+
+  .fold-actions {
+    display: flex;
+    gap: 14px;
+    margin: 4px 0 10px;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 8px;
+    margin: 10px 0 4px;
+  }
+  .search-row input[type=text] {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13.5px;
+    color: var(--ink);
+    border: 1px solid var(--card-line);
+    border-radius: 3px;
+    background: #fff;
+    padding: 7px 10px;
+  }
+  .search-row input[type=text]:focus { outline: none; border-color: var(--amber); }
+  .search-row select {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    border: 1px solid var(--card-line);
+    border-radius: 3px;
+    background: #fff;
+    padding: 0 6px;
+    flex: 0 0 auto;
+  }
+  #searchResults:empty { margin: 0; }
+  #searchResults {
+    margin: 0 0 6px;
+  }
+  .search-result {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--card-line);
+    border-left: 3px solid var(--amber);
+    border-radius: 3px;
+    background: var(--card);
+    margin-bottom: 6px;
+    cursor: pointer;
+    flex-wrap: wrap;
+  }
+  .search-result:hover { border-left-color: var(--green); background: var(--green-wash); }
+  .sr-name {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13.5px;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .sr-section {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .sr-status {
+    margin-left: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+  }
+  .sr-status.done { color: var(--green-deep); border-color: var(--green-deep); background: var(--green-wash); }
+  .sr-status.in-progress { color: var(--amber-deep); border-color: var(--amber-deep); background: var(--amber-wash); }
+
+  @keyframes flashRow {
+    0%, 100% { background: var(--card); }
+    30% { background: var(--amber-wash); }
+  }
+  .sub-row.flash, .cat-row.flash {
+    animation: flashRow 1.4s ease;
+  }
+
+  /* ledger rows */
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--card-line);
+    flex-wrap: wrap;
+  }
+  .row:last-of-type { border-bottom: none; }
+  .row input[type=text] {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14.5px;
+    color: var(--ink);
+    border: none;
+    background: transparent;
+    padding: 3px 2px;
+    min-width: 90px;
+    flex: 1 1 140px;
+  }
+  .row input[type=text]:focus { outline: none; border-bottom: 1px solid var(--amber); }
+  .leader {
+    flex: 1 1 24px;
+    min-width: 12px;
+    height: 0;
+    border-bottom: 1px dotted var(--line);
+    margin-bottom: 6px;
+  }
+  .row input[type=date] {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    border: 1px solid var(--card-line);
+    border-radius: 3px;
+    background: #fff;
+    padding: 3px 5px;
+    width: 132px;
+  }
+  .row input[type=number] {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--ink);
+    border: 1px solid var(--card-line);
+    border-radius: 3px;
+    background: #fff;
+    padding: 4px 6px;
+    width: 92px;
+  }
+  .money-field { display: flex; align-items: center; gap: 3px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-soft); }
+
+  .stamp {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border: 1.5px solid currentColor;
+    border-radius: 3px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-shadow: 0.4px 0.4px 0 currentColor;
+    transform: rotate(-1.5deg);
+    cursor: pointer;
+    user-select: none;
+    background: #fff;
+    white-space: nowrap;
+    transition: transform .12s ease;
+  }
+  .stamp:hover { transform: rotate(-1.5deg) scale(1.05); }
+  .stamp.not-started, .stamp.needed { color: var(--ink-soft); border-style: dashed; background: transparent; }
+  .stamp.in-progress, .stamp.ordered { color: var(--amber-deep); background: var(--amber-wash); }
+  .stamp.done, .stamp.purchased { color: var(--green-deep); background: var(--green-wash); }
+
+  .del-btn {
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 16px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 2px;
+    opacity: 0.55;
+  }
+  .del-btn:hover { opacity: 1; color: var(--brick); }
+
+  .subsection-list {
+    margin: 2px 0 4px 20px;
+    padding-left: 14px;
+    border-left: 1px dashed var(--line);
+  }
+  .sub-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px dotted var(--card-line);
+    flex-wrap: wrap;
+  }
+  .sub-row:last-of-type { border-bottom: none; }
+  .sub-row input[type=text] {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    border: none;
+    background: transparent;
+    padding: 2px;
+    min-width: 80px;
+    flex: 1 1 110px;
+  }
+  .sub-row input[type=text]:focus { outline: none; border-bottom: 1px solid var(--amber); color: var(--ink); }
+  .sub-row .stamp { font-size: 9.5px; padding: 2px 7px; }
+  .sub-row .del-btn { font-size: 14px; }
+
+  .steps-group { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .step {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border: 1.5px solid var(--line);
+    border-radius: 3px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+    background: #fff;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    transition: all .12s ease;
+  }
+  .step .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line); flex-shrink: 0; }
+  .step:hover { border-color: var(--amber); }
+  .step.on { color: var(--green-deep); border-color: var(--green-deep); background: var(--green-wash); }
+  .step.on .dot { background: var(--green-deep); }
+  .sub-row .step { font-size: 9px; padding: 2px 6px; }
+
+  .collapse-btn {
+    flex: 0 0 auto;
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 12px;
+    width: 18px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 0;
+  }
+  .collapse-btn:hover { color: var(--amber-deep); }
+  .collapse-spacer { flex: 0 0 auto; width: 18px; display: inline-block; }
+
+  .add-sub-btn {
+    display: inline-block;
+    margin: 0 0 12px 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    opacity: 0.7;
+    cursor: pointer;
+    padding: 2px 0;
+  }
+  .add-sub-btn:hover { color: var(--amber-deep); opacity: 1; }
+
+  .add-btn {
+    margin-top: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.03em;
+    background: none;
+    border: 1px dashed var(--line);
+    border-radius: 3px;
+    color: var(--ink-soft);
+    padding: 7px 12px;
+    cursor: pointer;
+  }
+  .add-btn:hover { border-color: var(--amber); color: var(--amber-deep); }
+
+  .empty {
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-style: italic;
+    padding: 10px 0;
+  }
+
+  /* budget totals — receipt style */
+  .totals {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+  .totals .line { display: flex; justify-content: space-between; padding: 3px 0; color: var(--ink-soft); }
+  .totals .grand {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 8px;
+    margin-top: 6px;
+    border-top: 3px double var(--ink);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--ink);
+  }
+
+  footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+  .reset-link { background: none; border: none; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-family: inherit; font-size: 11px; padding: 0; }
+  .reset-link:hover { color: var(--brick); }
+
+  @media (max-width: 480px) {
+    .row input[type=date], .row input[type=number] { width: 100px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Janatha Medicals · Upgrade Ledger</div>
+    <h1>Rack Entry &amp; Equipment Tracker</h1>
+    <div class="subtitle">Section-by-section rack entry progress, plus a running budget for the barcode and camera equipment. Saved automatically on this device.</div>
+  </header>
+
+  <div class="panel rack">
+    <div class="panel-head">
+      <div class="panel-title">Rack Entry Progress</div>
+      <div class="panel-meta" id="rackMeta">— of — done</div>
+    </div>
+    <div class="search-row">
+      <input type="text" id="rackSearch" placeholder="Search a rack…">
+      <select id="searchSort" title="Sort search results">
+        <option value="section">Sort by section</option>
+        <option value="name">Sort by rack name</option>
+      </select>
+    </div>
+    <div id="searchResults"></div>
+    <div class="gauge-row">
+      <div class="gauge"><div class="gauge-fill" id="gaugeFill" style="width:0%"></div></div>
+      <div class="gauge-label" id="gaugeLabel">0% entered</div>
+    </div>
+    <div class="fold-actions">
+      <button class="reset-link" id="collapseAllBtn">Collapse all</button>
+      <button class="reset-link" id="expandAllBtn">Expand all</button>
+    </div>
+    <div id="rackList"></div>
+    <button class="add-btn" id="addCategory">+ Add section</button>
+  </div>
+
+  <div class="panel budget">
+    <div class="panel-head">
+      <div class="panel-title">Equipment Budget</div>
+      <div class="panel-meta">barcode system · security cameras</div>
+    </div>
+    <div id="budgetList"></div>
+    <button class="add-btn" id="addBudgetItem">+ Add item</button>
+    <div class="totals">
+      <div class="line"><span>Estimated total</span><span id="estTotal">₹0</span></div>
+      <div class="line"><span>Actually spent so far</span><span id="actualTotal">₹0</span></div>
+      <div class="grand"><span>Remaining to budget</span><span id="remainingTotal">₹0</span></div>
+    </div>
+  </div>
+
+  <footer>
+    <span id="savedNote">Loading…</span>
+    <span class="footer-actions">
+      <button class="reset-link" id="backupBtn">Download backup</button>
+      <button class="reset-link" id="restoreBtn">Restore backup</button>
+      <button class="reset-link" id="resetBtn">Reset tracker</button>
+    </span>
+    <input type="file" id="restoreFile" accept="application/json" style="display:none;">
+  </footer>
+</div>
+
+<script>
+(function () {
+  const RACK_KEY = 'rack-categories';
+  const BUDGET_KEY = 'budget-items';
+
+  const STEP_DEFS = [
+    { key: 'photos', label: 'Photos' },
+    { key: 'software', label: 'Software' },
+    { key: 'history', label: 'History' },
+    { key: 'minmax', label: 'Min/Max' },
+  ];
+
+  function emptySteps() {
+    const o = {};
+    STEP_DEFS.forEach(d => { o[d.key] = false; });
+    return o;
+  }
+
+  function normalizeSteps(raw) {
+    const o = emptySteps();
+    if (raw && typeof raw === 'object') {
+      STEP_DEFS.forEach(d => { if (raw[d.key]) o[d.key] = true; });
+    }
+    return o;
+  }
+
+  const seedCategories = () => (JSON.parse(JSON.stringify([
+    { id: 'xmtftp1qealglq', name: 'Syrups', target: '', lastEditedAt: 1788441421084, subsections: [
+      { id: 'xmtftp7r83ebp5', name: 'Syp 1-5', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtftpff8t048x', name: 'Syp 6', steps: { photos: true, software: true, history: false, minmax: false } },
+      { id: 'xmtftpi6kepbts', name: 'Syp 7', steps: { photos: true, software: true, history: false, minmax: false } },
+      { id: 'xmtftpm784rxz5', name: 'Ped syp', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtfvauh0oifx5', name: 'Digestive', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtfvb2h8yphxc', name: 'Tonic', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtfvbld8vxure', name: 'Kidney', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2a6bje5yl0', name: 'A-2', steps: { photos: true, software: false, history: false, minmax: false } },
+      { id: 'xmtg2blqrvcdy0', name: 'A-9', steps: { photos: true, software: false, history: false, minmax: false } },
+      { id: 'xmtg2case2zx7b', name: 'A-10', steps: { photos: true, software: false, history: false, minmax: false } },
+      { id: 'xmtg2i134vfeq3', name: 'B-3', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2r1h32q3ho', name: 'B-6', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2skte3ikca', name: 'C-3', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2t3qqlfna8', name: 'C-4', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2uc1cw0ual', name: 'D-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg30a01yjrvl', name: 'D-9', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg31aj87ns25', name: 'D-10', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3b953n6h56', name: 'E-5', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3k3zlkbkpl', name: 'F-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3lt1nculo8', name: 'F-7', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3qe68wm4lv', name: 'F-8 enterogermina', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3twmw23xlk', name: 'F-10', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg44z3w6bb32', name: 'G-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg48re8fxb0f', name: 'H-4 becosules', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg4dkjp2ciua', name: 'H-7', steps: { photos: false, software: false, history: false, minmax: false } },
+    ], steps: { photos: false, software: false, history: false, minmax: false } },
+    { id: 'xmtftp1qeq5uid', name: 'Drops', target: '', lastEditedAt: 1788598761039, subsections: [
+      { id: 'xmtftpyb81ltve', name: 'Eye drops 1', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtftq550uxfk0', name: 'Eye drops 2', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtftq7kk4sq75', name: 'Eye drops fridge', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtftqg2sys0w0', name: 'Ear drops', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtftqt04fmn2k', name: 'Nasal drops', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtftqwssyhygu', name: 'Baby drops', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtg2aop2coes3', name: 'Baby A2', steps: { photos: true, software: false, history: false, minmax: false } },
+      { id: 'xmtg2eb46cgux2', name: 'Baby A9', steps: { photos: true, software: false, history: false, minmax: false } },
+      { id: 'xmtg2f3hr64zo9', name: 'Baby A10', steps: { photos: true, software: false, history: false, minmax: false } },
+      { id: 'xmtg2kl979p5re', name: 'Baby B-3', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2s76knfh1c', name: 'Baby C-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2vbjcusu4e', name: 'Baby D-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg31sf11s1ps', name: 'Baby D-10', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3hvmm2tzgm', name: 'Baby F-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3t7zn139f2', name: 'Ear - F-10', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3uz34owece', name: 'Baby - F-10 neez', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg45kugguo4f', name: 'Baby G-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg4cykor0dzm', name: 'Baby H-7', steps: { photos: false, software: false, history: false, minmax: false } },
+    ], steps: { photos: false, software: false, history: false, minmax: false } },
+    { id: 'xmtftp1qeuvy5b', name: 'Injection', target: '', lastEditedAt: 1788598782776, subsections: [
+      { id: 'xmtftsry3a7kug', name: 'Fridge', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2fg9w5xcfh', name: 'A10', steps: { photos: true, software: false, history: false, minmax: false } },
+    ], steps: { photos: false, software: false, history: false, minmax: false } },
+    { id: 'xmtftp1qe7k2sp', name: 'Ointments & Creams', target: '', lastEditedAt: 1788598869400, subsections: [
+      { id: 'xmtfttjysjzc0b', name: 'Rack 1-8', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtftwgo37q3o8', name: 'Cream tin', steps: { photos: true, software: true, history: false, minmax: false } },
+      { id: 'xmtfu5qfmd2ase', name: 'Eye Oint', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2fr76pmk67', name: 'A-9 Smuth', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2vz268g2b2', name: 'Tess D-9', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg39080vzglp', name: 'E-5', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3jiq5u5790', name: 'F-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg4alzthfmfp', name: 'H-5 eye', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg4bpjaqdala', name: 'H-5 tin cream', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg4fyru63qnv', name: 'I-2 DFO - n 4x', steps: { photos: false, software: false, history: false, minmax: false } },
+    ], steps: { photos: false, software: false, history: false, minmax: false } },
+    { id: 'xmtftp1qe4y594', name: 'Surgical', target: '', lastEditedAt: 1788603979673, subsections: [
+      { id: 'xmtftxn2bzhpdh', name: 'Top 1', steps: { photos: true, software: false, history: false, minmax: false } },
+      { id: 'xmtftxsjw5ha64', name: 'Top 2', steps: { photos: true, software: false, history: false, minmax: false } },
+      { id: 'xmtftxv8r5n8wm', name: 'Below PC', steps: { photos: true, software: false, history: false, minmax: false } },
+      { id: 'xmtfty0nn7dx1b', name: 'Below Laptop', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtfty7bvwsv8b', name: 'Rack G10', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtftzkq3kf3bi', name: 'Cotton and crepe bandage norm bandg', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtfu07zemkkts', name: 'Leukoplast', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtfu24sq29qhe', name: 'Glucometer', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtg476sey3wyk', name: 'H-1 N/s n stuff', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg4ixj5p4vaw', name: 'N/S - rack 2', steps: { photos: false, software: false, history: false, minmax: false } },
+    ], steps: { photos: false, software: false, history: false, minmax: false } },
+    { id: 'xmtftp1qek5kyz', name: 'Tablets', target: '', lastEditedAt: 1788113326773, subsections: [
+      { id: 'xmtg2y4zfik63v', name: 'Tin - B-9', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2yhdwxs70g', name: 'Tin D-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2zoytf87tm', name: 'Prolage plus - D-9', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3shxq4q5yw', name: 'Tin F-10', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg46598acqsl', name: 'Tin G-6', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg4b97fdu4t2', name: 'Tin H-5', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg4hx4yldwji', name: 'I - 2 seacod', steps: { photos: false, software: false, history: false, minmax: false } },
+    ], steps: { photos: false, software: false, history: false, minmax: false } },
+    { id: 'xmtfu0j6rbjnpi', name: 'Lotion', target: '', lastEditedAt: 1788115765462, subsections: [
+      { id: 'xmtfu1dmq8we4p', name: 'Lotion 1', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtfu1jn6dnlng', name: 'Lotion 2', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtfu1mpe187s6', name: 'Lotion 3', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtg2ws3997p1l', name: 'Melbid sol B-1', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3al7xhp8gm', name: 'E-5', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3heofdt16q', name: 'F-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3mbpf359w0', name: 'Renu - F-7', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg484tjw3uhu', name: 'H-4 selsun n s', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg4h6phlkp5r', name: 'I - 2 ', steps: { photos: false, software: false, history: false, minmax: false } },
+    ], steps: { photos: false, software: false, history: false, minmax: false } },
+    { id: 'xmtfu8u7xp0f4c', name: 'Respules', target: '', lastEditedAt: 1788112061811, subsections: [
+      { id: 'xmtfu8zua3jmky', name: 'G9', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3r004fm52q', name: 'F-8', steps: { photos: false, software: false, history: false, minmax: false } },
+    ], steps: { photos: false, software: false, history: false, minmax: false } },
+    { id: 'xmtfu9hghb9mqh', name: 'Pain spray', target: '', lastEditedAt: 0, subsections: [
+      { id: 'xmtfu9n4xbnfag', name: 'Behind', steps: { photos: false, software: false, history: false, minmax: false } },
+    ], steps: { photos: false, software: false, history: false, minmax: false } },
+    { id: 'xmtfuzyie4hpjt', name: 'Dental', target: '', lastEditedAt: 1788112941937, subsections: [
+      { id: 'xmtfv02km1d7yb', name: 'Toothpaste', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtfv06adl1nz4', name: 'Mouthwash', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtfv0asdf829n', name: 'Dental gel', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg2xibs2rtxf', name: 'Maxtra gargle D-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg363emjad3j', name: 'DGel E-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg36qh5ofmf9', name: 'Garg - E1n2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3gda2fbejr', name: 'Powder F-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3gtsywtxv7', name: 'Gel F-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3klj8z06xq', name: 'M/w - F-2', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg49dh6zv2jl', name: 'M/w H-4', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg49vwvg83kx', name: 'Gel H-4', steps: { photos: false, software: false, history: false, minmax: false } },
+    ], steps: { photos: false, software: false, history: false, minmax: false } },
+    { id: 'xmtfvij2ziusqm', name: 'Powder', target: '', lastEditedAt: 1788598801915, subsections: [
+      { id: 'xmtfvinwkjjhqy', name: 'Protien', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtfviukr1bvf0', name: 'Digestive', steps: { photos: true, software: true, history: true, minmax: true } },
+      { id: 'xmtg2gxqgtbjsh', name: 'A-9', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg3vhxlj5fbp', name: 'Dig F-10', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmtg4eiw5j33ty', name: 'H-7 -neosporin n ', steps: { photos: false, software: false, history: false, minmax: false } },
+      { id: 'xmto5jgafie45d', name: 'Dusting powders', steps: { photos: false, software: false, history: false, minmax: false } },
+    ], steps: { photos: false, software: false, history: false, minmax: false } },
+  ])));
+
+  const seedBudget = () => ([
+    { id: 'xmtg0tya9gxwkq', name: 'Barcode scanner(s)', est: '', actual: '', status: 'needed' },
+    { id: 'xmtg0tya9oil57', name: 'Barcode label printer', est: '', actual: '', status: 'needed' },
+    { id: 'xmtg0tya9njsy7', name: 'Security cameras', est: '', actual: '', status: 'needed' },
+  ]);
+
+  function uid() { return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  let categories = [];
+  let budgetItems = [];
+  let saveTimer = null;
+  let collapsedIds = new Set();
+
+  const rackList = document.getElementById('rackList');
+  const budgetList = document.getElementById('budgetList');
+  const savedNote = document.getElementById('savedNote');
+
+  const rackStatusLabel = { 'not-started': 'Not started', 'in-progress': 'In progress', 'done': 'Done' };
+  const STATUS_RANK = { 'in-progress': 0, 'not-started': 1, 'done': 2 };
+  const budgetStatusCycle = { 'needed': 'ordered', 'ordered': 'purchased', 'purchased': 'needed' };
+  const budgetStatusLabel = { 'needed': 'Needed', 'ordered': 'Ordered', 'purchased': 'Purchased' };
+
+  function inr(n) {
+    const num = Number(n);
+    if (!n && n !== 0) return '';
+    if (isNaN(num)) return '';
+    return '₹' + num.toLocaleString('en-IN');
+  }
+
+  function computeLeafStatus(steps) {
+    const s = steps || emptySteps();
+    const doneCount = STEP_DEFS.filter(d => s[d.key]).length;
+    if (doneCount === STEP_DEFS.length) return 'done';
+    if (doneCount === 0) return 'not-started';
+    return 'in-progress';
+  }
+
+  function computeCatStatus(cat) {
+    const subs = cat.subsections || [];
+    if (subs.length === 0) return computeLeafStatus(cat.steps);
+    const statuses = subs.map(s => computeLeafStatus(s.steps));
+    if (statuses.every(s => s === 'done')) return 'done';
+    if (statuses.every(s => s === 'not-started')) return 'not-started';
+    return 'in-progress';
+  }
+
+  function sortByStatus(list, statusFn) {
+    return [...list].sort((a, b) => STATUS_RANK[statusFn(a)] - STATUS_RANK[statusFn(b)]);
+  }
+
+  function stepChips(steps) {
+    const s = steps || emptySteps();
+    return STEP_DEFS.map(d => `
+      <span class="step ${s[d.key] ? 'on' : ''}" data-action="toggle-${d.key}"><span class="dot"></span>${d.label}</span>
+    `).join('');
+  }
+
+  function renderRack() {
+    if (categories.length === 0) {
+      rackList.innerHTML = '<div class="empty">No sections yet — add your first rack category below.</div>';
+    } else {
+      const sortedCats = [...categories].sort((a, b) => (b.lastEditedAt || 0) - (a.lastEditedAt || 0));
+      rackList.innerHTML = sortedCats.map(c => {
+        const subs = c.subsections || [];
+        const hasSubs = subs.length > 0;
+        const isCollapsed = hasSubs && collapsedIds.has(c.id);
+        const aggStatus = computeCatStatus(c);
+        const doneCount = subs.filter(s => computeLeafStatus(s.steps) === 'done').length;
+        const stampLabel = `${rackStatusLabel[aggStatus]} (${doneCount}/${subs.length})`;
+        const sortedSubs = hasSubs ? sortByStatus(subs, s => computeLeafStatus(s.steps)) : [];
+        const subRows = (hasSubs && !isCollapsed) ? `
+          <div class="subsection-list" data-parent="${c.id}">
+            ${sortedSubs.map(s => `
+              <div class="sub-row" data-id="${s.id}" data-parent="${c.id}">
+                <input type="text" class="f-name" value="${escapeAttr(s.name)}" placeholder="Rack name">
+                <div class="leader"></div>
+                <span class="steps-group">${stepChips(s.steps)}</span>
+                <button class="del-btn" data-action="delete-sub" title="Remove rack">×</button>
+              </div>
+            `).join('')}
+          </div>
+        ` : '';
+        const addRackBtn = (!hasSubs || !isCollapsed)
+          ? `<button class="add-sub-btn" data-action="add-sub" data-parent="${c.id}">+ Add rack</button>`
+          : '';
+        const catStatusEl = hasSubs
+          ? `<span class="stamp ${aggStatus} auto" data-action="cycle-all" title="Cycles every rack in this section">${stampLabel}</span>`
+          : `<span class="steps-group">${stepChips(c.steps)}</span>`;
+        const collapseBtn = hasSubs
+          ? `<button class="collapse-btn" data-action="collapse" title="${isCollapsed ? 'Expand' : 'Collapse'}">${isCollapsed ? '▸' : '▾'}</button>`
+          : `<span class="collapse-spacer"></span>`;
+        return `
+          <div class="cat-block" data-id="${c.id}">
+            <div class="row cat-row" data-id="${c.id}">
+              ${collapseBtn}
+              <input type="text" class="f-name" value="${escapeAttr(c.name)}" placeholder="Section name">
+              <div class="leader"></div>
+              ${catStatusEl}
+              <input type="date" class="f-target" value="${c.target || ''}" title="Target date">
+              <button class="del-btn" data-action="delete" title="Remove section">×</button>
+            </div>
+            ${subRows}
+            ${addRackBtn}
+          </div>
+        `;
+      }).join('');
+    }
+    let totalLeaves = 0, doneLeaves = 0;
+    categories.forEach(c => {
+      const subs = c.subsections || [];
+      if (subs.length > 0) {
+        totalLeaves += subs.length;
+        doneLeaves += subs.filter(s => computeLeafStatus(s.steps) === 'done').length;
+      } else {
+        totalLeaves += 1;
+        if (computeLeafStatus(c.steps) === 'done') doneLeaves += 1;
+      }
+    });
+    const pct = totalLeaves ? Math.round((doneLeaves / totalLeaves) * 100) : 0;
+    document.getElementById('rackMeta').textContent = `${doneLeaves} of ${totalLeaves} done`;
+    document.getElementById('gaugeFill').style.width = pct + '%';
+    document.getElementById('gaugeLabel').textContent = pct + '% entered';
+  }
+
+  function renderBudget() {
+    if (budgetItems.length === 0) {
+      budgetList.innerHTML = '<div class="empty">No equipment items yet — add one below.</div>';
+    } else {
+      budgetList.innerHTML = budgetItems.map(b => `
+        <div class="row" data-id="${b.id}" data-kind="budget">
+          <input type="text" class="f-name" value="${escapeAttr(b.name)}" placeholder="Item">
+          <div class="leader"></div>
+          <span class="money-field">est<input type="number" class="f-est" value="${b.est}" min="0" placeholder="0"></span>
+          <span class="money-field">actual<input type="number" class="f-actual" value="${b.actual}" min="0" placeholder="0"></span>
+          <span class="stamp ${b.status}" data-action="cycle">${budgetStatusLabel[b.status]}</span>
+          <button class="del-btn" data-action="delete" title="Remove">×</button>
+        </div>
+      `).join('');
+    }
+    updateTotals();
+  }
+
+  function updateTotals() {
+    const estTotal = budgetItems.reduce((s, b) => s + (Number(b.est) || 0), 0);
+    const actualTotal = budgetItems.reduce((s, b) => s + (Number(b.actual) || 0), 0);
+    const remaining = Math.max(estTotal - actualTotal, 0);
+    document.getElementById('estTotal').textContent = inr(estTotal) || '₹0';
+    document.getElementById('actualTotal').textContent = inr(actualTotal) || '₹0';
+    document.getElementById('remainingTotal').textContent = inr(remaining) || '₹0';
+  }
+
+  function escapeAttr(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  function queueSave() {
+    savedNote.textContent = 'Saving…';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      try {
+        await window.storage.set(RACK_KEY, JSON.stringify(categories));
+        await window.storage.set(BUDGET_KEY, JSON.stringify(budgetItems));
+        const t = new Date();
+        savedNote.textContent = 'Saved ' + t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch (e) {
+        savedNote.textContent = 'Could not save — changes may be lost';
+        console.error('Storage error', e);
+      }
+    }, 450);
+  }
+
+  // event delegation — rack (category rows + nested sub-rack rows)
+  rackList.addEventListener('input', (e) => {
+    const subRow = e.target.closest('.sub-row');
+    if (subRow) {
+      const cat = categories.find(c => c.id === subRow.dataset.parent);
+      const sub = cat && (cat.subsections || []).find(s => s.id === subRow.dataset.id);
+      if (sub && e.target.classList.contains('f-name')) sub.name = e.target.value;
+      if (cat) cat.lastEditedAt = Date.now();
+      queueSave();
+      return;
+    }
+    const catRow = e.target.closest('.cat-row');
+    if (!catRow) return;
+    const item = categories.find(c => c.id === catRow.dataset.id);
+    if (!item) return;
+    if (e.target.classList.contains('f-name')) item.name = e.target.value;
+    if (e.target.classList.contains('f-target')) item.target = e.target.value;
+    item.lastEditedAt = Date.now();
+    queueSave();
+  });
+
+  rackList.addEventListener('click', (e) => {
+    const action = e.target.closest('[data-action]') ? e.target.closest('[data-action]').dataset.action : null;
+    const actionEl = e.target.closest('[data-action]');
+    if (!action) return;
+
+    if (action === 'add-sub') {
+      const cat = categories.find(c => c.id === actionEl.dataset.parent);
+      if (!cat) return;
+      if (!cat.subsections) cat.subsections = [];
+      const newSub = { id: uid(), name: '', steps: emptySteps() };
+      cat.subsections.push(newSub);
+      cat.lastEditedAt = Date.now();
+      renderRack();
+      const focusInput = rackList.querySelector(`.sub-row[data-id="${newSub.id}"] .f-name`);
+      if (focusInput) focusInput.focus();
+      queueSave();
+      return;
+    }
+
+    if (action === 'delete-sub') {
+      const subRow = actionEl.closest('.sub-row');
+      if (!subRow) return;
+      const cat = categories.find(c => c.id === subRow.dataset.parent);
+      if (!cat) return;
+      cat.subsections = (cat.subsections || []).filter(s => s.id !== subRow.dataset.id);
+      cat.lastEditedAt = Date.now();
+      renderRack();
+      queueSave();
+      return;
+    }
+
+    if (action === 'collapse') {
+      const catRow = actionEl.closest('.cat-row');
+      const cat = catRow && categories.find(c => c.id === catRow.dataset.id);
+      if (!cat) return;
+      if (collapsedIds.has(cat.id)) collapsedIds.delete(cat.id); else collapsedIds.add(cat.id);
+      renderRack();
+      return;
+    }
+
+    if (action.indexOf('toggle-') === 0) {
+      const field = action.slice(7);
+      if (!STEP_DEFS.some(d => d.key === field)) return;
+      const subRow = actionEl.closest('.sub-row');
+      if (subRow) {
+        const cat = categories.find(c => c.id === subRow.dataset.parent);
+        const sub = cat && (cat.subsections || []).find(s => s.id === subRow.dataset.id);
+        if (sub) {
+          sub.steps = sub.steps || emptySteps();
+          sub.steps[field] = !sub.steps[field];
+        }
+        if (cat) cat.lastEditedAt = Date.now();
+      } else {
+        const catRow = actionEl.closest('.cat-row');
+        const cat = catRow && categories.find(c => c.id === catRow.dataset.id);
+        if (cat) {
+          cat.steps = cat.steps || emptySteps();
+          cat.steps[field] = !cat.steps[field];
+          cat.lastEditedAt = Date.now();
+        }
+      }
+      renderRack();
+      queueSave();
+      return;
+    }
+
+    const catRow = actionEl.closest('.cat-row');
+    if (!catRow) return;
+    const item = categories.find(c => c.id === catRow.dataset.id);
+    if (!item) return;
+
+    if (action === 'cycle-all') {
+      const agg = computeCatStatus(item);
+      const subs = item.subsections || [];
+      if (agg === 'done') {
+        subs.forEach(s => { s.steps = emptySteps(); });
+      } else if (agg === 'not-started') {
+        subs.forEach(s => {
+          const ns = emptySteps();
+          ns[STEP_DEFS[0].key] = true;
+          s.steps = ns;
+        });
+      } else {
+        subs.forEach(s => {
+          const ns = emptySteps();
+          STEP_DEFS.forEach(d => { ns[d.key] = true; });
+          s.steps = ns;
+        });
+      }
+      item.lastEditedAt = Date.now();
+    } else if (action === 'delete') {
+      categories = categories.filter(c => c.id !== item.id);
+    }
+    renderRack();
+    queueSave();
+  });
+
+  document.getElementById('addCategory').addEventListener('click', () => {
+    const newCat = { id: uid(), name: '', target: '', subsections: [], steps: emptySteps(), lastEditedAt: Date.now() };
+    categories.push(newCat);
+    renderRack();
+    const focusInput = rackList.querySelector(`.cat-row[data-id="${newCat.id}"] .f-name`);
+    if (focusInput) focusInput.focus();
+    queueSave();
+  });
+
+  document.getElementById('collapseAllBtn').addEventListener('click', () => {
+    categories.forEach(c => { if ((c.subsections || []).length > 0) collapsedIds.add(c.id); });
+    renderRack();
+  });
+
+  document.getElementById('expandAllBtn').addEventListener('click', () => {
+    collapsedIds.clear();
+    renderRack();
+  });
+
+  // rack search — find which section a rack lives in, sortable by section or name
+  const searchInput = document.getElementById('rackSearch');
+  const searchSortSel = document.getElementById('searchSort');
+  const searchResultsEl = document.getElementById('searchResults');
+
+  function runSearch() {
+    const q = searchInput.value.trim().toLowerCase();
+    if (!q) { searchResultsEl.innerHTML = ''; return; }
+    let matches = [];
+    categories.forEach(c => {
+      (c.subsections || []).forEach(s => {
+        if (s.name.toLowerCase().includes(q)) {
+          matches.push({ rackId: s.id, rackName: s.name, catId: c.id, catName: c.name, steps: s.steps });
+        }
+      });
+    });
+    if (searchSortSel.value === 'section') {
+      matches.sort((a, b) => a.catName.localeCompare(b.catName) || a.rackName.localeCompare(b.rackName));
+    } else {
+      matches.sort((a, b) => a.rackName.localeCompare(b.rackName));
+    }
+    if (matches.length === 0) {
+      searchResultsEl.innerHTML = `<div class="empty">No racks match "${escapeAttr(searchInput.value.trim())}".</div>`;
+      return;
+    }
+    searchResultsEl.innerHTML = matches.map(m => {
+      const st = computeLeafStatus(m.steps);
+      return `
+        <div class="search-result" data-cat="${m.catId}" data-rack="${m.rackId}">
+          <span class="sr-name">${escapeAttr(m.rackName)}</span>
+          <span class="sr-section">in ${escapeAttr(m.catName)}</span>
+          <span class="sr-status ${st}">${rackStatusLabel[st]}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  searchInput.addEventListener('input', runSearch);
+  searchSortSel.addEventListener('change', runSearch);
+
+  searchResultsEl.addEventListener('click', (e) => {
+    const row = e.target.closest('.search-result');
+    if (!row) return;
+    const catId = row.dataset.cat;
+    const rackId = row.dataset.rack;
+    if (collapsedIds.has(catId)) collapsedIds.delete(catId);
+    renderRack();
+    requestAnimationFrame(() => {
+      const target = rackList.querySelector(`.sub-row[data-id="${rackId}"]`);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('flash');
+        setTimeout(() => target.classList.remove('flash'), 1500);
+      }
+    });
+  });
+
+  // event delegation — budget
+  budgetList.addEventListener('input', (e) => {
+    const row = e.target.closest('.row');
+    if (!row) return;
+    const item = budgetItems.find(b => b.id === row.dataset.id);
+    if (!item) return;
+    if (e.target.classList.contains('f-name')) item.name = e.target.value;
+    if (e.target.classList.contains('f-est')) item.est = e.target.value;
+    if (e.target.classList.contains('f-actual')) item.actual = e.target.value;
+    updateTotals();
+    queueSave();
+  });
+  budgetList.addEventListener('click', (e) => {
+    const row = e.target.closest('.row');
+    if (!row) return;
+    const item = budgetItems.find(b => b.id === row.dataset.id);
+    if (!item) return;
+    if (e.target.dataset.action === 'cycle') {
+      item.status = budgetStatusCycle[item.status];
+      renderBudget();
+      queueSave();
+    } else if (e.target.dataset.action === 'delete') {
+      budgetItems = budgetItems.filter(b => b.id !== item.id);
+      renderBudget();
+      queueSave();
+    }
+  });
+  document.getElementById('addBudgetItem').addEventListener('click', () => {
+    budgetItems.push({ id: uid(), name: '', est: '', actual: '', status: 'needed' });
+    renderBudget();
+    const inputs = budgetList.querySelectorAll('.f-name');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+    queueSave();
+  });
+
+  function statusToSteps(status) {
+    const o = emptySteps();
+    if (status === 'done') { o.photos = true; o.software = true; }
+    else if (status === 'in-progress') { o.photos = true; }
+    return o;
+  }
+
+  function normalizeCategories(cats) {
+    return (cats || []).map(c => ({
+      id: c.id || uid(),
+      name: c.name || '',
+      target: c.target || '',
+      steps: normalizeSteps(c.steps || statusToSteps(c.status)),
+      lastEditedAt: c.lastEditedAt || 0,
+      subsections: (c.subsections || []).map(s => ({
+        id: s.id || uid(),
+        name: s.name || '',
+        steps: normalizeSteps(s.steps || statusToSteps(s.status)),
+      })),
+    }));
+  }
+
+  function normalizeBudget(items) {
+    return (items || []).map(b => ({
+      id: b.id || uid(),
+      name: b.name || '',
+      est: b.est ?? '',
+      actual: b.actual ?? '',
+      status: b.status || 'needed',
+    }));
+  }
+
+  document.getElementById('resetBtn').addEventListener('click', async () => {
+    if (!confirm('Reset the tracker back to the starting sections and budget items? This clears everything you\'ve entered.')) return;
+    categories = seedCategories();
+    budgetItems = seedBudget();
+    renderRack();
+    renderBudget();
+    queueSave();
+  });
+
+  document.getElementById('backupBtn').addEventListener('click', () => {
+    const payload = { exportedAt: new Date().toISOString(), categories, budgetItems };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `janatha-upgrade-tracker-backup-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    savedNote.textContent = 'Backup downloaded';
+  });
+
+  document.getElementById('restoreBtn').addEventListener('click', () => {
+    document.getElementById('restoreFile').click();
+  });
+
+  document.getElementById('restoreFile').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!data || !Array.isArray(data.categories) || !Array.isArray(data.budgetItems)) {
+          alert('This file doesn\'t look like a tracker backup.');
+          return;
+        }
+        if (!confirm('Restore this backup? It will replace everything currently in the tracker.')) return;
+        categories = normalizeCategories(data.categories);
+        budgetItems = normalizeBudget(data.budgetItems);
+        renderRack();
+        renderBudget();
+        queueSave();
+      } catch (err) {
+        alert('Could not read that file — make sure it\'s a backup downloaded from this tracker.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  async function load() {
+    try {
+      const r = await window.storage.get(RACK_KEY);
+      categories = normalizeCategories(r && r.value ? JSON.parse(r.value) : seedCategories());
+    } catch (e) {
+      categories = seedCategories();
+    }
+    try {
+      const b = await window.storage.get(BUDGET_KEY);
+      budgetItems = normalizeBudget(b && b.value ? JSON.parse(b.value) : seedBudget());
+    } catch (e) {
+      budgetItems = seedBudget();
+    }
+    renderRack();
+    renderBudget();
+    savedNote.textContent = 'Loaded';
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
