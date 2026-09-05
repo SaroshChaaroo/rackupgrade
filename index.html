@@ -3,1008 +3,2141 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Janatha Medicals — Upgrade Ledger</title>
+<title>Ledger — Cash Flow Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" onerror="window.__libFail=(window.__libFail||[]).concat('PapaParse')"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.__libFail=(window.__libFail||[]).concat('XLSX')"></script>
 <style>
-  :root {
-    --paper: #EAE3D2;
-    --card: #F7F2E4;
-    --card-line: #DAD0B6;
-    --ink: #22302A;
-    --ink-soft: #6B7A70;
-    --amber: #B8721F;
-    --amber-deep: #8F5A18;
-    --amber-wash: rgba(184,114,31,0.09);
-    --green: #3D6B54;
-    --green-deep: #2A4A38;
-    --green-wash: rgba(61,107,84,0.09);
-    --brick: #A8412D;
-    --line: #C7BEA0;
+  :root{
+    --bg:#0f1613;
+    --bg-card:#141d19;
+    --bg-card-alt:#182420;
+    --line:#25332b;
+    --line-soft:#1d2823;
+    --ink:#e7efe9;
+    --ink-muted:#7e9186;
+    --ink-faint:#4d5c53;
+    --green:#4ade80;
+    --green-dim:#2f6b46;
+    --rust:#c97c5d;
+    --rust-dim:#6b4535;
+    --amber:#e0b94c;
+    --radius:2px;
+    --mono:'IBM Plex Mono', ui-monospace, monospace;
+    --display:'Space Grotesk', sans-serif;
   }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--paper);
-    background-image:
-      linear-gradient(var(--card-line) 1px, transparent 1px);
-    background-size: 100% 32px;
-    color: var(--ink);
-    font-family: 'IBM Plex Sans', sans-serif;
-    padding: 28px 16px 60px;
-    min-height: 100vh;
+  *{box-sizing:border-box;}
+  html{-webkit-font-smoothing:antialiased;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--mono);
+    font-size:14px;
+    line-height:1.5;
   }
-  .wrap { max-width: 880px; margin: 0 auto; }
+  ::selection{ background:var(--green-dim); color:var(--ink); }
+  a{ color:var(--green); }
+  :focus-visible{ outline:2px solid var(--green); outline-offset:2px; }
 
-  header { margin-bottom: 28px; }
-  .eyebrow {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--amber-deep);
-    margin-bottom: 6px;
-  }
-  h1 {
-    font-family: 'Spectral', serif;
-    font-weight: 700;
-    font-size: clamp(26px, 5vw, 36px);
-    margin: 0 0 6px;
-    letter-spacing: -0.01em;
-  }
-  .subtitle { color: var(--ink-soft); font-size: 14px; max-width: 60ch; line-height: 1.5; }
-
-  .panel {
-    background: var(--card);
-    border: 1px solid var(--card-line);
-    border-radius: 4px;
-    padding: 20px 20px 16px;
-    margin-bottom: 22px;
-    position: relative;
-  }
-  .panel::before {
-    content: '';
-    position: absolute;
-    top: 10px; bottom: 10px; left: 0;
-    width: 3px;
-    background: var(--amber);
-    border-radius: 0 2px 2px 0;
-  }
-  .panel.budget::before { background: var(--green); }
-
-  .panel-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 4px;
-    flex-wrap: wrap;
-  }
-  .panel-title {
-    font-family: 'Spectral', serif;
-    font-weight: 600;
-    font-size: 19px;
-  }
-  .panel-meta {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    color: var(--ink-soft);
-  }
-
-  /* gauge */
-  .gauge-row { margin: 12px 0 18px; }
-  .gauge {
-    position: relative;
-    height: 14px;
-    border: 1px solid var(--line);
-    border-radius: 2px;
-    overflow: hidden;
+  /* decorative sprocket strip */
+  .sprocket-strip{
+    height:14px;
     background:
-      repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 10%),
-      #EFE9D9;
-  }
-  .gauge-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--green-deep), var(--green));
-    transition: width 0.35s ease;
-  }
-  .gauge-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11.5px;
-    color: var(--ink-soft);
-    margin-top: 5px;
+      radial-gradient(circle at center, var(--bg) 2.5px, transparent 3px) repeat-x,
+      var(--line-soft);
+    background-size:16px 14px, auto;
+    background-position: 8px center;
+    border-bottom:1px solid var(--line);
   }
 
-  .fold-actions {
-    display: flex;
-    gap: 14px;
-    margin: 4px 0 10px;
+  .wrap{ max-width:960px; margin:0 auto; padding:0 20px 80px; }
+
+  header.hero{
+    padding:56px 0 40px;
+    border-bottom:1px dashed var(--line);
+    margin-bottom:36px;
+  }
+  .eyebrow{
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+    margin:0 0 14px;
+  }
+  .eyebrow::before{ content:"— "; color:var(--green); }
+  h1.title{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:clamp(34px,6vw,52px);
+    letter-spacing:-0.01em;
+    margin:0 0 12px;
+  }
+  .title .accent{ color:var(--green); }
+  p.lede{
+    max-width:520px;
+    color:var(--ink-muted);
+    font-size:14px;
+    margin:0;
+  }
+  .quote-line{
+    max-width:520px;
+    margin:16px 0 0;
+    padding-left:12px;
+    border-left:2px solid var(--green-dim);
+    font-size:12.5px;
+    font-style:italic;
+    color:var(--ink-faint);
+  }
+  .quote-line .quote-author{
+    display:block;
+    margin-top:4px;
+    font-style:normal;
+    font-size:11px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
   }
 
-  /* ledger rows */
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 0;
-    border-bottom: 1px solid var(--card-line);
-    flex-wrap: wrap;
+  section{ margin-bottom:44px; }
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:16px;
   }
-  .row:last-of-type { border-bottom: none; }
-  .row input[type=text] {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 14.5px;
-    color: var(--ink);
-    border: none;
-    background: transparent;
-    padding: 3px 2px;
-    min-width: 90px;
-    flex: 1 1 140px;
+  .section-title{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink);
   }
-  .row input[type=text]:focus { outline: none; border-bottom: 1px solid var(--amber); }
-  .leader {
-    flex: 1 1 24px;
-    min-width: 12px;
-    height: 0;
-    border-bottom: 1px dotted var(--line);
-    margin-bottom: 6px;
+  .section-note{ font-size:12px; color:var(--ink-faint); }
+  .section-head.collapsible{ cursor:pointer; user-select:none; }
+  .collapse-arrow{
+    display:inline-block;
+    margin-left:8px;
+    font-size:11px;
+    color:var(--ink-faint);
+    transition:transform .15s ease;
   }
-  .row input[type=date] {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    color: var(--ink-soft);
-    border: 1px solid var(--card-line);
-    border-radius: 3px;
-    background: #fff;
-    padding: 3px 5px;
-    width: 132px;
+  .collapse-arrow.collapsed{ transform:rotate(-90deg); }
+  .collapsible-body.collapsed{ display:none; }
+  .section-controls{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
   }
-  .row input[type=number] {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
-    color: var(--ink);
-    border: 1px solid var(--card-line);
-    border-radius: 3px;
-    background: #fff;
-    padding: 4px 6px;
-    width: 92px;
-  }
-  .money-field { display: flex; align-items: center; gap: 3px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-soft); }
+  .section-controls select{ width:auto; min-width:150px; text-transform:none; letter-spacing:normal; font-size:12.5px; }
 
-  .stamp {
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 9px;
-    border: 1.5px solid currentColor;
-    border-radius: 3px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    text-shadow: 0.4px 0.4px 0 currentColor;
-    transform: rotate(-1.5deg);
-    cursor: pointer;
-    user-select: none;
-    background: #fff;
-    white-space: nowrap;
-    transition: transform .12s ease;
+  /* ---------- upload zone ---------- */
+  .dropzone{
+    position:relative;
+    border:1px dashed var(--line);
+    background:var(--bg-card);
+    padding:38px 24px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
   }
-  .stamp:hover { transform: rotate(-1.5deg) scale(1.05); }
-  .stamp.not-started, .stamp.needed { color: var(--ink-soft); border-style: dashed; background: transparent; }
-  .stamp.in-progress, .stamp.ordered { color: var(--amber-deep); background: var(--amber-wash); }
-  .stamp.done, .stamp.purchased { color: var(--green-deep); background: var(--green-wash); }
+  .dropzone::before, .dropzone::after{
+    content:"";
+    position:absolute; left:0; right:0; height:8px;
+    background:radial-gradient(circle at center, var(--bg) 2.5px, transparent 3px) repeat-x;
+    background-size:16px 8px;
+    background-position:8px center;
+  }
+  .dropzone::before{ top:-1px; }
+  .dropzone::after{ bottom:-1px; }
+  .dropzone.drag{ border-color:var(--green); background:var(--bg-card-alt); }
+  .dropzone.collapsed{ display:none; }
+  .dropzone svg{ width:28px; height:28px; stroke:var(--green); margin-bottom:12px; }
+  .dropzone .dz-title{ font-family:var(--display); font-weight:600; font-size:15px; margin-bottom:6px; }
+  .dropzone .dz-sub{ color:var(--ink-muted); font-size:12px; }
+  .dropzone input[type=file]{ display:none; }
 
-  .del-btn {
-    border: none;
-    background: transparent;
-    color: var(--ink-soft);
-    font-size: 16px;
-    cursor: pointer;
-    line-height: 1;
-    padding: 4px 2px;
-    opacity: 0.55;
+  .file-status{
+    display:none;
+    align-items:center;
+    gap:14px;
+    margin-top:6px;
+    padding:8px 14px;
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    font-size:12px;
+    width:fit-content;
+    max-width:100%;
   }
-  .del-btn:hover { opacity: 1; color: var(--brick); }
+  .file-status.show{ display:flex; }
+  .file-status-info{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:var(--ink-muted);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .fdot{
+    width:6px; height:6px;
+    background:var(--green);
+    flex-shrink:0;
+    box-shadow:0 0 0 3px rgba(74,222,128,.12);
+  }
+  .file-status .fname{ color:var(--ink); }
+  .file-status .fmeta{ color:var(--ink-faint); }
+  .file-status .fmeta::before{ content:"· "; }
+  .file-status button.btn{ flex-shrink:0; padding:5px 12px; font-size:10.5px; }
+  button.btn{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.04em;
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink-muted);
+    padding:7px 14px;
+    cursor:pointer;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  button.btn:hover{ border-color:var(--green); color:var(--green); }
+  .parse-error{
+    display:none;
+    margin-top:14px;
+    padding:12px 16px;
+    border:1px solid var(--rust-dim);
+    background:rgba(201,124,93,.08);
+    color:var(--rust);
+    font-size:12.5px;
+  }
+  .parse-error.show{ display:block; }
 
-  .subsection-list {
-    margin: 2px 0 4px 20px;
-    padding-left: 14px;
-    border-left: 1px dashed var(--line);
+  select{
+    width:100%;
+    font-family:var(--mono);
+    font-size:12.5px;
+    background:var(--bg);
+    color:var(--ink);
+    border:1px solid var(--line);
+    padding:8px 8px;
   }
-  .sub-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 0;
-    border-bottom: 1px dotted var(--card-line);
-    flex-wrap: wrap;
+  select:hover{ border-color:var(--ink-faint); }
+  .map-assumption{
+    margin-top:10px;
+    font-size:12px;
+    color:var(--amber);
+    display:none;
   }
-  .sub-row:last-of-type { border-bottom: none; }
-  .sub-row input[type=text] {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 13px;
-    color: var(--ink-soft);
-    border: none;
-    background: transparent;
-    padding: 2px;
-    min-width: 80px;
-    flex: 1 1 110px;
-  }
-  .sub-row input[type=text]:focus { outline: none; border-bottom: 1px solid var(--amber); color: var(--ink); }
-  .sub-row .stamp { font-size: 9.5px; padding: 2px 7px; }
-  .sub-row .del-btn { font-size: 14px; }
+  .map-assumption.show{ display:block; }
 
-  .steps-group { display: inline-flex; gap: 6px; flex-wrap: wrap; }
-  .step {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 8px;
-    border: 1.5px solid var(--line);
-    border-radius: 3px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    cursor: pointer;
-    user-select: none;
-    background: #fff;
-    color: var(--ink-soft);
-    white-space: nowrap;
-    transition: all .12s ease;
-  }
-  .step .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line); flex-shrink: 0; }
-  .step:hover { border-color: var(--amber); }
-  .step.on { color: var(--green-deep); border-color: var(--green-deep); background: var(--green-wash); }
-  .step.on .dot { background: var(--green-deep); }
-  .sub-row .step { font-size: 9px; padding: 2px 6px; }
-
-  .collapse-btn {
-    flex: 0 0 auto;
-    border: none;
-    background: transparent;
-    color: var(--ink-soft);
-    font-size: 12px;
-    width: 18px;
-    cursor: pointer;
-    line-height: 1;
-    padding: 2px 0;
-  }
-  .collapse-btn:hover { color: var(--amber-deep); }
-  .collapse-spacer { flex: 0 0 auto; width: 18px; display: inline-block; }
-
-  .add-sub-btn {
-    display: inline-block;
-    margin: 0 0 12px 20px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11.5px;
-    background: none;
-    border: none;
-    color: var(--ink-soft);
-    opacity: 0.7;
-    cursor: pointer;
-    padding: 2px 0;
-  }
-  .add-sub-btn:hover { color: var(--amber-deep); opacity: 1; }
-
-  .add-btn {
-    margin-top: 12px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12.5px;
-    letter-spacing: 0.03em;
-    background: none;
-    border: 1px dashed var(--line);
-    border-radius: 3px;
-    color: var(--ink-soft);
-    padding: 7px 12px;
-    cursor: pointer;
-  }
-  .add-btn:hover { border-color: var(--amber); color: var(--amber-deep); }
-
-  .empty {
-    font-size: 13px;
-    color: var(--ink-soft);
-    font-style: italic;
-    padding: 10px 0;
+  /* ---------- empty state ---------- */
+  #dashboard{ display:none; }
+  #dashboard.show{ display:block; }
+  .empty-state{
+    padding:40px 20px;
+    text-align:center;
+    color:var(--ink-faint);
+    font-size:12.5px;
+    border:1px dashed var(--line);
   }
 
-  /* budget totals — receipt style */
-  .totals {
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px dashed var(--line);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
+  /* ---------- stat cards ---------- */
+  .stat-row{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
   }
-  .totals .line { display: flex; justify-content: space-between; padding: 3px 0; color: var(--ink-soft); }
-  .totals .grand {
-    display: flex;
-    justify-content: space-between;
-    padding-top: 8px;
-    margin-top: 6px;
-    border-top: 3px double var(--ink);
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--ink);
+  .stat-card{
+    background:var(--bg-card);
+    padding:20px 18px;
+  }
+  .stat-card.total-row{ background:var(--bg-card-alt); border-left:2px solid var(--green-dim); }
+  .stat-label{
+    font-size:10.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin-bottom:10px;
+  }
+  .stat-value{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:24px;
+    letter-spacing:-0.01em;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat-value.in{ color:var(--green); }
+  .stat-value.out{ color:var(--rust); }
+  .stat-sub{ margin-top:6px; font-size:11px; color:var(--ink-faint); }
+  .transfer-note{ margin-top:10px; font-size:11.5px; color:var(--ink-faint); display:none; }
+  .transfer-note.show{ display:block; }
+
+  /* ---------- chart ---------- */
+  .chart-card{
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    padding:20px;
+  }
+  .legend-row{ display:flex; gap:18px; margin-top:14px; font-size:11.5px; color:var(--ink-muted); }
+  .legend-dot{ display:inline-block; width:8px; height:8px; margin-right:6px; border-radius:1px; }
+  .trend-chart{
+    display:flex;
+    align-items:flex-end;
+    gap:16px;
+    height:200px;
+    overflow-x:auto;
+    padding-top:8px;
+  }
+  .trend-empty{ color:var(--ink-faint); font-size:12px; }
+  .trend-col{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    min-width:40px;
+    flex-shrink:0;
+  }
+  .trend-bars{
+    display:flex;
+    align-items:flex-end;
+    gap:4px;
+    height:160px;
+  }
+  .trend-bar{
+    width:14px;
+    background:var(--ink-faint);
+    transition:height .15s ease;
+  }
+  .trend-bar.in{ background:var(--green); }
+  .trend-bar.out{ background:var(--rust); }
+  .trend-label{ font-size:10.5px; color:var(--ink-faint); white-space:nowrap; }
+
+  /* ---------- category bars ---------- */
+  .cat-list{ display:flex; flex-direction:column; gap:10px; }
+  .cat-row{
+    display:grid;
+    grid-template-columns:140px 1fr 100px;
+    align-items:center;
+    gap:12px;
+    font-size:12.5px;
+  }
+  .cat-name{ color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cat-track{ height:8px; background:var(--bg-card-alt); border:1px solid var(--line); }
+  .cat-fill{ height:100%; background:var(--rust); }
+  .cat-amt{ text-align:right; color:var(--ink-muted); font-variant-numeric:tabular-nums; }
+
+  /* ---------- scope tabs (totals selector) ---------- */
+  .scope-tabs{
+    display:flex;
+    gap:2px;
+    margin-bottom:14px;
+  }
+  .period-tab{
+    font-family:var(--mono);
+    font-size:11.5px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink-faint);
+    padding:7px 16px;
+    cursor:pointer;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .period-tab:hover{ color:var(--ink-muted); }
+  .period-tab.active{ color:var(--green); border-color:var(--green-dim); }
+  .val-in{ color:var(--green); }
+  .val-out{ color:var(--rust); }
+
+  /* ---------- monthly/weekly breakdown ---------- */
+  .perf-controls{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:14px 16px;
+    border-bottom:1px solid var(--line);
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+  }
+  .perf-controls select{ width:auto; min-width:170px; text-transform:none; letter-spacing:normal; font-size:12.5px; }
+  table.perf td, table.perf th{ font-variant-numeric:tabular-nums; }
+  .mix-bar{
+    display:flex;
+    height:8px;
+    width:100%;
+    min-width:60px;
+    background:var(--bg-card-alt);
+    border:1px solid var(--line);
+    overflow:hidden;
+  }
+  .mix-in{ background:var(--green); height:100%; }
+  .mix-out{ background:var(--rust); height:100%; }
+  table.perf .total-row td{
+    font-weight:600;
+    color:var(--ink);
+    background:var(--bg-card-alt);
+    border-top:1px solid var(--ink-faint);
+  }
+  .perf-note{
+    padding:10px 16px 14px;
+    font-size:11px;
+    color:var(--ink-faint);
   }
 
-  footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 20px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--ink-soft);
-    flex-wrap: wrap;
-    gap: 8px;
+  /* ---------- transaction explorer ---------- */
+  .explorer-controls{
+    display:flex;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:14px;
+    padding:14px 16px;
+    border-bottom:1px solid var(--line);
   }
-  .footer-actions { display: flex; gap: 14px; flex-wrap: wrap; }
-  .reset-link { background: none; border: none; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-family: inherit; font-size: 11px; padding: 0; }
-  .reset-link:hover { color: var(--brick); }
+  .explorer-field{ display:flex; flex-direction:column; gap:6px; }
+  .explorer-field label{
+    font-size:10.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+  }
+  .explorer-field input[type=date]{
+    font-family:var(--mono);
+    font-size:12.5px;
+    background:var(--bg);
+    color:var(--ink);
+    border:1px solid var(--line);
+    padding:7px 8px;
+    min-width:140px;
+  }
+  .explorer-field select{ width:auto; min-width:150px; }
+  .explorer-presets{ display:flex; flex-wrap:wrap; gap:6px; }
+  .mini-btn{
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:.04em;
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink-faint);
+    padding:6px 10px;
+    cursor:pointer;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .mini-btn:hover{ color:var(--green); border-color:var(--green-dim); }
+  .explorer-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    padding:12px 16px 0;
+  }
+  .explorer-actions-spacer{ flex:1; }
+  .explorer-note{
+    padding:6px 16px 0;
+    font-size:10.5px;
+    color:var(--ink-faint);
+  }
+  .explorer-error{
+    padding:6px 16px 0;
+    font-size:11.5px;
+    color:var(--rust);
+    display:none;
+  }
+  .explorer-error.show{ display:block; }
+  .explorer-summary{
+    padding:12px 16px;
+    font-size:12px;
+    color:var(--ink-muted);
+    border-bottom:1px solid var(--line-soft);
+  }
 
-  @media (max-width: 480px) {
-    .row input[type=date], .row input[type=number] { width: 100px; }
+  /* ---------- transactions table ---------- */
+  table.txn{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12px;
+  }
+  table.txn th{
+    text-align:left;
+    font-size:10.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    padding:10px 12px;
+    border-bottom:1px solid var(--line);
+  }
+  table.txn td{
+    padding:10px 12px;
+    border-bottom:1px solid var(--line-soft);
+    color:var(--ink-muted);
+    font-variant-numeric:tabular-nums;
+  }
+  table.txn tr:hover td{ color:var(--ink); background:var(--bg-card-alt); }
+  .explorer-table td{ border-bottom:none; }
+  .explorer-table tr.day-start td{ border-top:1px solid var(--line); }
+  .explorer-table .idx-col{ width:1%; white-space:nowrap; color:var(--ink-faint); }
+  .split-badge{
+    display:inline-block;
+    font-size:9px;
+    letter-spacing:.06em;
+    color:var(--amber);
+    border:1px solid var(--amber);
+    padding:1px 4px;
+    margin-left:4px;
+    vertical-align:middle;
+  }
+  .recv-status{
+    display:inline-block;
+    font-size:10px;
+    letter-spacing:.04em;
+    padding:2px 7px;
+    border:1px solid currentColor;
+  }
+  .recv-status.pending{ color:var(--amber); }
+  .recv-status.received{ color:var(--green); }
+  .recv-match{
+    display:block;
+    margin-top:3px;
+    font-size:10.5px;
+    color:var(--ink-faint);
+  }
+  .recv-btn{
+    font-family:var(--mono);
+    font-size:10.5px;
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink-muted);
+    padding:5px 10px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .recv-btn:hover{ color:var(--green); border-color:var(--green-dim); }
+  .recv-btn.undo:hover{ color:var(--rust); border-color:var(--rust-dim); }
+  .badge{
+    display:inline-block;
+    font-size:10px;
+    padding:2px 7px;
+    border:1px solid currentColor;
+  }
+  .badge.income{ color:var(--green); }
+  .badge.expense{ color:var(--rust); }
+  .badge.transfer{ color:var(--ink-faint); }
+  .amt-cell{ text-align:right; }
+
+  /* ---------- stamp / coming soon card ---------- */
+  .stamp-card{
+    position:relative;
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    padding:26px 24px;
+    overflow:hidden;
+  }
+  .stamp-card h3{
+    font-family:var(--display);
+    font-size:15px;
+    margin:0 0 8px;
+  }
+  .stamp-card p{
+    color:var(--ink-muted);
+    font-size:12.5px;
+    max-width:480px;
+    margin:0 0 18px;
+  }
+  .stamp-mark{
+    position:absolute;
+    top:18px; right:28px;
+    border:2px solid var(--rust);
+    color:var(--rust);
+    font-family:var(--display);
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:.12em;
+    padding:6px 12px;
+    transform:rotate(8deg);
+    opacity:.85;
+  }
+  .mood-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .mood-chip{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:11.5px;
+    color:var(--ink-faint);
+    border:1px dashed var(--line);
+    padding:6px 10px;
+  }
+  .mood-chip svg{ width:11px; height:11px; stroke:var(--ink-faint); }
+
+  footer{
+    margin-top:60px;
+    padding-top:20px;
+    border-top:1px dashed var(--line);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+    font-size:11px;
+    color:var(--ink-faint);
+  }
+
+  @media (max-width:640px){
+    .cat-row{ grid-template-columns:100px 1fr 76px; }
+    table.txn{ font-size:11px; }
+    table.txn th:nth-child(3), table.txn td:nth-child(3){ display:none; }
+    .explorer-table th:nth-child(3), .explorer-table td:nth-child(3){ display:table-cell; }
+    .explorer-table th:nth-child(4), .explorer-table td:nth-child(4){ display:none; }
+    .explorer-table .idx-col{ display:none; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation:none !important; transition:none !important; }
+  }
+
+  /* ---------- print export ---------- */
+  #printArea{ display:none; }
+  #printArea h2{ font-family:Arial, sans-serif; font-size:14px; margin:0 0 4px; color:#111; }
+  #printArea .print-meta{ font-family:Arial, sans-serif; font-size:9px; color:#444; margin-bottom:14px; }
+  #printArea table{ width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:8.5px; color:#111; }
+  #printArea th, #printArea td{ padding:2px 6px; text-align:left; border:none; }
+  #printArea th{ background:#eee; border-bottom:1px solid #999; }
+  #printArea td.amt{ text-align:right; font-variant-numeric:tabular-nums; }
+  #printArea td.idx{ color:#777; width:1%; white-space:nowrap; }
+  #printArea td.dt{ white-space:nowrap; }
+  #printArea tr.day-start td{ border-top:1px solid #ccc; }
+  @media print{
+    body.printing-explorer > *:not(#printArea){ display:none !important; }
+    body.printing-explorer{ background:#fff; }
+    body.printing-explorer #printArea{ display:block !important; background:#fff; padding:0; }
+    @page{ margin:16mm; }
   }
 </style>
 </head>
 <body>
+
+<div class="sprocket-strip"></div>
+
 <div class="wrap">
-  <header>
-    <div class="eyebrow">Janatha Medicals · Upgrade Ledger</div>
-    <h1>Rack Entry &amp; Equipment Tracker</h1>
-    <div class="subtitle">Section-by-section rack entry progress, plus a running budget for the barcode and camera equipment. Saved automatically on this device.</div>
+
+  <header class="hero">
+    <p class="eyebrow">Cash Flow / Expense Ledger</p>
+    <h1 class="title">Where the money <span class="accent">actually</span> went.</h1>
+    <p class="lede">Upload the export from your tracking spreadsheet. Everything below is computed in your browser — nothing is sent anywhere.</p>
+    <p class="quote-line" id="quoteLine"></p>
   </header>
 
-  <div class="panel rack">
-    <div class="panel-head">
-      <div class="panel-title">Rack Entry Progress</div>
-      <div class="panel-meta" id="rackMeta">— of — done</div>
+  <section id="uploadSection">
+    <div class="section-head">
+      <span class="section-title">01 — Load your ledger</span>
     </div>
-    <div class="gauge-row">
-      <div class="gauge"><div class="gauge-fill" id="gaugeFill" style="width:0%"></div></div>
-      <div class="gauge-label" id="gaugeLabel">0% entered</div>
-    </div>
-    <div class="fold-actions">
-      <button class="reset-link" id="collapseAllBtn">Collapse all</button>
-      <button class="reset-link" id="expandAllBtn">Expand all</button>
-    </div>
-    <div id="rackList"></div>
-    <button class="add-btn" id="addCategory">+ Add section</button>
-  </div>
 
-  <div class="panel budget">
-    <div class="panel-head">
-      <div class="panel-title">Equipment Budget</div>
-      <div class="panel-meta">barcode system · security cameras</div>
+    <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload spreadsheet file">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+      <div class="dz-title">Drop your CSV or Excel export here</div>
+      <div class="dz-sub">or click to browse — .csv, .xlsx, .xls</div>
+      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
     </div>
-    <div id="budgetList"></div>
-    <button class="add-btn" id="addBudgetItem">+ Add item</button>
-    <div class="totals">
-      <div class="line"><span>Estimated total</span><span id="estTotal">₹0</span></div>
-      <div class="line"><span>Actually spent so far</span><span id="actualTotal">₹0</span></div>
-      <div class="grand"><span>Remaining to budget</span><span id="remainingTotal">₹0</span></div>
+
+    <div class="file-status" id="fileStatus">
+      <div class="file-status-info"><span class="fdot"></span><span class="fname" id="fname"></span><span class="fmeta" id="fmeta"></span></div>
+      <button class="btn" id="ejectBtn">Change file</button>
     </div>
+
+    <div class="map-assumption" id="mapAssumption"></div>
+    <div class="parse-error" id="parseError"></div>
+  </section>
+
+  <div id="dashboard">
+
+    <section>
+      <div class="section-head">
+        <span class="section-title">02 — The totals</span>
+        <span class="section-note" id="rangeNote"></span>
+      </div>
+      <div class="scope-tabs" role="tablist">
+        <button class="period-tab active" id="scopeMonth" role="tab" aria-selected="true">This month</button>
+        <button class="period-tab" id="scopeWeek" role="tab" aria-selected="false">This week</button>
+        <button class="period-tab" id="scopeAll" role="tab" aria-selected="false">All time</button>
+      </div>
+      <div class="stat-row" id="statRow"></div>
+      <div class="transfer-note" id="transferNote"></div>
+      <div class="transfer-note" id="splitNote"></div>
+    </section>
+
+    <section id="balanceSection" style="display:none;">
+      <div class="section-head">
+        <span class="section-title">03 — Your balance</span>
+        <span class="section-note" id="balanceNote"></span>
+      </div>
+      <div class="stat-row" id="balanceRow"></div>
+    </section>
+
+    <section id="receivablesSection" style="display:none;">
+      <div class="section-head">
+        <span class="section-title">04 — Money owed to you</span>
+        <span class="section-note" id="receivablesNote"></span>
+      </div>
+      <div class="chart-card" style="padding:0;">
+        <table class="txn">
+          <thead>
+            <tr><th>Date</th><th>From</th><th style="text-align:right;">Total</th><th style="text-align:right;">Your share</th><th style="text-align:right;">Owed</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody id="receivablesBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <span class="section-title">05 — In vs. out, by month</span>
+      </div>
+      <div class="chart-card">
+        <div class="trend-chart" id="trendChart"></div>
+        <div class="legend-row" id="legendRow">
+          <span><span class="legend-dot" style="background:var(--green)"></span>Money in</span>
+          <span><span class="legend-dot" style="background:var(--rust)"></span>Money out</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <span class="section-title">06 — How you did, period by period</span>
+        <span class="section-note">weeks run Monday–Sunday</span>
+      </div>
+      <div class="chart-card" style="padding:0;">
+        <div class="perf-controls">
+          <label for="perfMonthSelect">Month</label>
+          <select id="perfMonthSelect"></select>
+        </div>
+        <table class="txn perf">
+          <thead>
+            <tr><th>Week</th><th style="text-align:right;">In</th><th style="text-align:right;">Out</th><th style="text-align:right;">Net</th><th style="text-align:right;">Savings</th><th>Mix</th></tr>
+          </thead>
+          <tbody id="perfBody"></tbody>
+        </table>
+        <div class="perf-note" id="perfNote">The first and last week rows can dip into the neighbouring month to stay full Mon–Sun blocks — the Total row below only counts days actually inside this month.</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head collapsible" id="catSectionHead">
+        <span class="section-title">07 — Where it goes <span class="collapse-arrow" id="catArrow">▾</span></span>
+        <span class="section-note">top spending categories</span>
+      </div>
+      <div class="collapsible-body" id="catBody">
+        <div class="section-controls">
+          <label for="catMonthSelect">Month</label>
+          <select id="catMonthSelect"><option value="">All time</option></select>
+        </div>
+        <div class="chart-card">
+          <div class="cat-list" id="catList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head collapsible" id="topSectionHead">
+        <span class="section-title">08 — Largest entries <span class="collapse-arrow" id="topArrow">▾</span></span>
+        <span class="section-note">top 10 by amount</span>
+      </div>
+      <div class="collapsible-body" id="topBody">
+        <div class="section-controls">
+          <label for="topMonthSelect">Month</label>
+          <select id="topMonthSelect"><option value="">All time</option></select>
+        </div>
+        <div class="chart-card" style="padding:0;">
+          <table class="txn">
+            <thead>
+              <tr><th>Date</th><th>Category</th><th>Note</th><th style="text-align:right;">Amount</th><th>Type</th></tr>
+            </thead>
+            <tbody id="txnBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <span class="section-title">09 — Look up transactions</span>
+        <span class="section-note" id="explorerNote">defaults to this month</span>
+      </div>
+      <div class="chart-card" style="padding:0;">
+        <div class="explorer-controls">
+          <div class="explorer-field">
+            <label for="explFrom">From</label>
+            <input type="date" id="explFrom">
+          </div>
+          <div class="explorer-field">
+            <label for="explTo">To</label>
+            <input type="date" id="explTo">
+          </div>
+          <div class="explorer-field">
+            <label for="explDay">Jump to a day</label>
+            <input type="date" id="explDay">
+          </div>
+          <div class="explorer-presets">
+            <button type="button" class="mini-btn" data-preset="today">Today</button>
+            <button type="button" class="mini-btn" data-preset="7">Last 7 days</button>
+            <button type="button" class="mini-btn" data-preset="30">Last 30 days</button>
+            <button type="button" class="mini-btn" data-preset="month">This month</button>
+            <button type="button" class="mini-btn" data-preset="all">All time</button>
+          </div>
+        </div>
+        <div class="explorer-controls">
+          <div class="explorer-field">
+            <label for="explAccount">Account</label>
+            <select id="explAccount"><option value="">All accounts</option></select>
+          </div>
+          <div class="explorer-field">
+            <label for="explType">Type</label>
+            <select id="explType"><option value="">All types</option></select>
+          </div>
+          <div class="explorer-field">
+            <label for="explCategory">Category</label>
+            <select id="explCategory"><option value="">All categories</option></select>
+          </div>
+        </div>
+        <div class="explorer-actions">
+          <button type="button" class="mini-btn" id="explorerSortToggle">Newest first ↓</button>
+          <span class="explorer-actions-spacer"></span>
+          <button type="button" class="mini-btn" id="explorerDownloadExcel">Download Excel</button>
+          <button type="button" class="mini-btn" id="explorerDownloadPdf">Download PDF</button>
+        </div>
+        <div class="explorer-note" id="explorerDownloadNote">PDF opens your browser's print dialog — choose "Save as PDF" as the destination.</div>
+        <div class="explorer-error" id="explorerError"></div>
+        <div class="explorer-summary" id="explorerSummary"></div>
+        <table class="txn explorer-table">
+          <thead>
+            <tr><th class="idx-col">#</th><th>Date</th><th>Account</th><th>Type</th><th>Category</th><th>Note</th><th style="text-align:right;">Amount</th></tr>
+          </thead>
+          <tbody id="explorerBody"></tbody>
+        </table>
+        <div class="perf-note" id="explorerMoreNote"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <span class="section-title">10 — The honest part</span>
+      </div>
+      <div class="stamp-card">
+        <div class="stamp-mark">NOT LOGGED</div>
+        <h3>Honest tagging of emotional / contextual spend</h3>
+        <p>Honest tagging of emotional/contextual spend is not ADDED YET. This is the layer that turns a list of transactions into insight — what mood, situation, or trigger sat behind a spend. Once your form captures it, this card will turn into a real breakdown.</p>
+        <div class="mood-chips">
+          <span class="mood-chip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Stress</span>
+          <span class="mood-chip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Impulse</span>
+          <span class="mood-chip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Planned</span>
+          <span class="mood-chip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Social</span>
+          <span class="mood-chip"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Reward</span>
+        </div>
+      </div>
+    </section>
+
   </div>
 
   <footer>
-    <span id="savedNote">Loading…</span>
-    <span class="footer-actions">
-      <button class="reset-link" id="backupBtn">Download backup</button>
-      <button class="reset-link" id="restoreBtn">Restore backup</button>
-      <button class="reset-link" id="resetBtn">Reset tracker</button>
-    </span>
-    <input type="file" id="restoreFile" accept="application/json" style="display:none;">
+    <span>Runs entirely in this browser tab — your data is never uploaded.</span>
+    <span>Reload the page to start over.</span>
   </footer>
+
 </div>
 
-<script>
-(function () {
-  const RACK_KEY = 'rack-categories';
-  const BUDGET_KEY = 'budget-items';
+<div id="printArea"></div>
 
-  const STEP_DEFS = [
-    { key: 'photos', label: 'Photos' },
-    { key: 'software', label: 'Software' },
-    { key: 'history', label: 'History' },
-    { key: 'minmax', label: 'Min/Max' },
+<script>
+(function(){
+  "use strict";
+
+  const MONEY_QUOTES = [
+    {text:"The stock market is a device for transferring money from the impatient to the patient.", author:"Warren Buffett"},
+    {text:"Do not save what is left after spending, but spend what is left after saving.", author:"Warren Buffett"},
+    {text:"An investment in knowledge pays the best interest.", author:"Benjamin Franklin"},
+    {text:"Beware of little expenses; a small leak will sink a great ship.", author:"Benjamin Franklin"},
+    {text:"It's not how much money you make, but how much you keep.", author:"Robert Kiyosaki"},
+    {text:"Money is a terrible master but an excellent servant.", author:"P. T. Barnum"},
+    {text:"Never spend your money before you have earned it.", author:"Thomas Jefferson"},
+    {text:"A budget is telling your money where to go instead of wondering where it went.", author:"Dave Ramsey"},
+    {text:"The habit of saving is itself an education.", author:"T. T. Munger"},
+    {text:"Wealth consists not in having great possessions, but in having few wants.", author:"Epictetus"},
+    {text:"Rich people have small TVs and big libraries; poor people have small libraries and big TVs.", author:"Zig Ziglar"},
+    {text:"Too many people spend money they haven't earned, to buy things they don't want, to impress people they don't like.", author:"Will Rogers"},
+    {text:"Financial peace isn't the acquisition of stuff — it's learning to live on less than you make.", author:"Dave Ramsey"},
+    {text:"Money often costs too much.", author:"Ralph Waldo Emerson"},
+    {text:"A penny saved is a penny earned.", author:"Benjamin Franklin"},
+    {text:"The quickest way to double your money is to fold it in half and put it back in your pocket.", author:"Will Rogers"},
+    {text:"In investing, what is comfortable is rarely profitable.", author:"Robert Arnott"},
+    {text:"Risk comes from not knowing what you're doing.", author:"Warren Buffett"},
+    {text:"Someone's sitting in the shade today because someone planted a tree a long time ago.", author:"Warren Buffett"},
+    {text:"Formal education will make you a living; self-education will make you a fortune.", author:"Jim Rohn"},
+    {text:"It's not your salary that makes you rich, it's your spending habits.", author:"Charles A. Jaffe"},
+    {text:"You must gain control over your money or the lack of it will forever control you.", author:"Dave Ramsey"},
+    {text:"Frugality includes all the other virtues.", author:"Cicero"},
+    {text:"If you would be wealthy, think of saving as well as getting.", author:"Benjamin Franklin"},
+    {text:"He who buys what he does not need, steals from himself.", author:"Proverb"},
+    {text:"The lack of money is the root of all evil.", author:"Mark Twain"},
+    {text:"It is not the man who has too little, but the man who craves more, that is poor.", author:"Seneca"},
+    {text:"Compound interest is the eighth wonder of the world.", author:"attributed to Albert Einstein"},
+    {text:"Every time you borrow money, you're robbing your future self.", author:"Nathan W. Morris"},
+    {text:"The four most dangerous words in investing are: 'this time it's different.'", author:"Sir John Templeton"},
+    {text:"Know what you own, and know why you own it.", author:"Peter Lynch"},
+    {text:"Price is what you pay. Value is what you get.", author:"Warren Buffett"}
   ];
 
-  function emptySteps() {
-    const o = {};
-    STEP_DEFS.forEach(d => { o[d.key] = false; });
-    return o;
+  function renderDailyQuote(){
+    const el = document.getElementById('quoteLine');
+    if(!el || MONEY_QUOTES.length === 0) return;
+    const dayIndex = Math.floor(Date.now() / 86400000) % MONEY_QUOTES.length;
+    const q = MONEY_QUOTES[dayIndex];
+    el.textContent = '\u201C' + q.text + '\u201D';
+    const authorSpan = document.createElement('span');
+    authorSpan.className = 'quote-author';
+    authorSpan.textContent = '\u2014 ' + q.author;
+    el.appendChild(authorSpan);
   }
+  renderDailyQuote();
 
-  function normalizeSteps(raw) {
-    const o = emptySteps();
-    if (raw && typeof raw === 'object') {
-      STEP_DEFS.forEach(d => { if (raw[d.key]) o[d.key] = true; });
-    }
-    return o;
-  }
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const fileStatus = document.getElementById('fileStatus');
+  const fnameEl = document.getElementById('fname');
+  const fmetaEl = document.getElementById('fmeta');
+  const ejectBtn = document.getElementById('ejectBtn');
+  const parseError = document.getElementById('parseError');
+  const mapAssumption = document.getElementById('mapAssumption');
+  const dashboard = document.getElementById('dashboard');
 
-  const seedCategories = () => (JSON.parse(JSON.stringify([
-    { id: 'xmtftp1qealglq', name: 'Syrups', target: '', lastEditedAt: 1788113116926, subsections: [
-      { id: 'xmtftp7r83ebp5', name: 'Syp 1-5', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtftpff8t048x', name: 'Syp 6', steps: { photos: true, software: true, history: false, minmax: false } },
-      { id: 'xmtftpi6kepbts', name: 'Syp 7', steps: { photos: true, software: true, history: false, minmax: false } },
-      { id: 'xmtftpm784rxz5', name: 'Ped syp', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtfttqwz0ni99', name: 'Few more', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtfvauh0oifx5', name: 'Digestive', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtfvb2h8yphxc', name: 'Tonic', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtfvbld8vxure', name: 'Kidney', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2a6bje5yl0', name: 'A-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2blqrvcdy0', name: 'A-9', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2case2zx7b', name: 'A-10', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2i134vfeq3', name: 'B-3', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2r1h32q3ho', name: 'B-6', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2skte3ikca', name: 'C-3', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2t3qqlfna8', name: 'C-4', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2uc1cw0ual', name: 'D-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg30a01yjrvl', name: 'D-9', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg31aj87ns25', name: 'D-10', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3b953n6h56', name: 'E-5', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3k3zlkbkpl', name: 'F-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3lt1nculo8', name: 'F-7', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3qe68wm4lv', name: 'F-8 enterogermina', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3twmw23xlk', name: 'F-10', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg44z3w6bb32', name: 'G-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg48re8fxb0f', name: 'H-4 becosules', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg4dkjp2ciua', name: 'H-7', steps: { photos: false, software: false, history: false, minmax: false } },
-    ], steps: { photos: false, software: false, history: false, minmax: false } },
-    { id: 'xmtftp1qeq5uid', name: 'Drops', target: '', lastEditedAt: 1788113093978, subsections: [
-      { id: 'xmtftpyb81ltve', name: 'Eye drops 1', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtftq550uxfk0', name: 'Eye drops 2', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtftq7kk4sq75', name: 'Eye drops fridge', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtftqg2sys0w0', name: 'Ear drops', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtftqt04fmn2k', name: 'Nasal drops', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtftqwssyhygu', name: 'Baby drops', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtfu4qh6td421', name: 'Few more', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2aop2coes3', name: 'Baby A2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2eb46cgux2', name: 'Baby A9', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2f3hr64zo9', name: 'Baby A10', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2kl979p5re', name: 'Baby B-3', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2s76knfh1c', name: 'Baby C-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2vbjcusu4e', name: 'Baby D-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg31sf11s1ps', name: 'Baby D-10', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3hvmm2tzgm', name: 'Baby F-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3t7zn139f2', name: 'Ear - F-10', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3uz34owece', name: 'Baby - F-10 neez', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg45kugguo4f', name: 'Baby G-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg4cykor0dzm', name: 'Baby H-7', steps: { photos: false, software: false, history: false, minmax: false } },
-    ], steps: { photos: false, software: false, history: false, minmax: false } },
-    { id: 'xmtftp1qeuvy5b', name: 'Injection', target: '', lastEditedAt: 1788109839827, subsections: [
-      { id: 'xmtftsry3a7kug', name: 'Fridge', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtftudcj40vnw', name: 'Few more', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2fg9w5xcfh', name: 'A10', steps: { photos: false, software: false, history: false, minmax: false } },
-    ], steps: { photos: false, software: false, history: false, minmax: false } },
-    { id: 'xmtftp1qe7k2sp', name: 'Ointments & Creams', target: '', lastEditedAt: 1788113243438, subsections: [
-      { id: 'xmtfttjysjzc0b', name: 'Rack 1-8', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtftwgo37q3o8', name: 'Cream tin', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtfu2egaa3fk9', name: 'Few more', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtfu5qfmd2ase', name: 'Eye Oint', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2fr76pmk67', name: 'A-9 Smuth', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2vz268g2b2', name: 'Tess D-9', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg39080vzglp', name: 'E-5', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3jiq5u5790', name: 'F-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg4alzthfmfp', name: 'H-5 eye', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg4bpjaqdala', name: 'H-5 tin cream', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg4fyru63qnv', name: 'I - 2 DFO - n 4x', steps: { photos: false, software: false, history: false, minmax: false } },
-    ], steps: { photos: false, software: false, history: false, minmax: false } },
-    { id: 'xmtftp1qe4y594', name: 'Surgical', target: '', lastEditedAt: 1788113364979, subsections: [
-      { id: 'xmtftxn2bzhpdh', name: 'Top 1', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtftxsjw5ha64', name: 'Top 2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtftxv8r5n8wm', name: 'Below PC', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtfty0nn7dx1b', name: 'Below Laptop', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtfty7bvwsv8b', name: 'Rack G10', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtftzkq3kf3bi', name: 'Cotton and crepe bandage norm bandg', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtfu07zemkkts', name: 'Leukoplast', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtfu24sq29qhe', name: 'Glucometer', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtg476sey3wyk', name: 'H-1 N/s n stuff', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg4ixj5p4vaw', name: 'N/S - rack 2', steps: { photos: false, software: false, history: false, minmax: false } },
-    ], steps: { photos: false, software: false, history: false, minmax: false } },
-    { id: 'xmtftp1qek5kyz', name: 'Tablets', target: '', lastEditedAt: 1788113326773, subsections: [
-      { id: 'xmtg2y4zfik63v', name: 'Tin - B-9', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2yhdwxs70g', name: 'Tin D-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2zoytf87tm', name: 'Prolage plus - D-9', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3shxq4q5yw', name: 'Tin F-10', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg46598acqsl', name: 'Tin G-6', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg4b97fdu4t2', name: 'Tin H-5', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg4hx4yldwji', name: 'I - 2 seacod', steps: { photos: false, software: false, history: false, minmax: false } },
-    ], steps: { photos: false, software: false, history: false, minmax: false } },
-    { id: 'xmtftp1qeqxlx5', name: 'Capsules', target: '', lastEditedAt: 0, subsections: [
-    ], steps: { photos: false, software: false, history: false, minmax: false } },
-    { id: 'xmtfu0j6rbjnpi', name: 'Lotion', target: '', lastEditedAt: 1788113294966, subsections: [
-      { id: 'xmtfu1dmq8we4p', name: 'Lotion 1', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtfu1jn6dnlng', name: 'Lotion 2', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtfu1mpe187s6', name: 'Lotion 3', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtfu1q0icwoi5', name: 'Few more', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2ws3997p1l', name: 'Melbid sol B-1', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3al7xhp8gm', name: 'E-5', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3heofdt16q', name: 'F-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3mbpf359w0', name: 'Renu - F-7', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg484tjw3uhu', name: 'H-4 selsun n s', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg4h6phlkp5r', name: 'I - 2 ', steps: { photos: false, software: false, history: false, minmax: false } },
-    ], steps: { photos: false, software: false, history: false, minmax: false } },
-    { id: 'xmtfu8u7xp0f4c', name: 'Respules', target: '', lastEditedAt: 1788112061811, subsections: [
-      { id: 'xmtfu8zua3jmky', name: 'G9', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3r004fm52q', name: 'F-8', steps: { photos: false, software: false, history: false, minmax: false } },
-    ], steps: { photos: false, software: false, history: false, minmax: false } },
-    { id: 'xmtfu9hghb9mqh', name: 'Pain spray', target: '', lastEditedAt: 0, subsections: [
-      { id: 'xmtfu9n4xbnfag', name: 'Behind', steps: { photos: false, software: false, history: false, minmax: false } },
-    ], steps: { photos: false, software: false, history: false, minmax: false } },
-    { id: 'xmtfuzyie4hpjt', name: 'Dental', target: '', lastEditedAt: 1788112941937, subsections: [
-      { id: 'xmtfv02km1d7yb', name: 'Toothpaste', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtfv06adl1nz4', name: 'Mouthwash', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtfv0asdf829n', name: 'Dental gel', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg2xibs2rtxf', name: 'Maxtra gargle D-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg363emjad3j', name: 'DGel E-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg36qh5ofmf9', name: 'Garg - E1n2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3gda2fbejr', name: 'Powder F-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3gtsywtxv7', name: 'Gel F-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3klj8z06xq', name: 'M/w - F-2', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg49dh6zv2jl', name: 'M/w H-4', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg49vwvg83kx', name: 'Gel H-4', steps: { photos: false, software: false, history: false, minmax: false } },
-    ], steps: { photos: false, software: false, history: false, minmax: false } },
-    { id: 'xmtfvij2ziusqm', name: 'Powder', target: '', lastEditedAt: 1788113184937, subsections: [
-      { id: 'xmtfvinwkjjhqy', name: 'Protien', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtfviukr1bvf0', name: 'Digestive', steps: { photos: true, software: true, history: true, minmax: true } },
-      { id: 'xmtg2gxqgtbjsh', name: 'A-9', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg3vhxlj5fbp', name: 'Dig F-10', steps: { photos: false, software: false, history: false, minmax: false } },
-      { id: 'xmtg4eiw5j33ty', name: 'H-7 -neosporin n ', steps: { photos: false, software: false, history: false, minmax: false } },
-    ], steps: { photos: false, software: false, history: false, minmax: false } },
-  ])));
+  let rawRows = [];
+  let headers = [];
+  let currentMapping = {};
+  let lastTxns = [];
+  let statsScope = 'month';
+  let perfSelectedMonth = null;
 
-  const seedBudget = () => ([
-    { id: 'xmtg0tya9gxwkq', name: 'Barcode scanner(s)', est: '', actual: '', status: 'needed' },
-    { id: 'xmtg0tya9oil57', name: 'Barcode label printer', est: '', actual: '', status: 'needed' },
-    { id: 'xmtg0tya9njsy7', name: 'Security cameras', est: '', actual: '', status: 'needed' },
-  ]);
+  const PATTERNS = {
+    date: [/^date$/i, /^timestamp$/i, /timestamp/i, /^day$/i, /date/i],
+    credit: [/^credit$/i, /credit/i, /deposit/i, /money in/i, /^income$/i],
+    debit: [/^debit$/i, /debit/i, /withdrawal/i, /money out/i, /spent/i],
+    type: [/^type$/i, /nature/i, /in\/?out/i, /transaction type/i, /direction/i],
+    amount: [/^amount$/i, /amount/i, /^amt$/i, /amt/i, /value/i, /price/i, /\brs\b/i, /inr/i],
+    category: [/categor/i, /^tag$/i, /purpose/i, /head/i],
+    description: [/desc/i, /note/i, /remark/i, /detail/i, /particular/i, /^item$/i, /narration/i, /comment/i],
+    account: [/^account$/i, /account/i, /^wallet$/i, /^bank$/i, /payment mode/i],
+    share: [/my share/i, /your share/i, /split share/i, /^share$/i, /split amount/i, /my portion/i]
+  };
 
-  function uid() { return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  /* ---------------- file handling ---------------- */
 
-  let categories = [];
-  let budgetItems = [];
-  let saveTimer = null;
-  let collapsedIds = new Set();
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ fileInput.click(); }});
+  ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag'); }));
+  dropzone.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if(f) handleFile(f); });
+  fileInput.addEventListener('change', e => { const f = e.target.files[0]; if(f) handleFile(f); });
+  ejectBtn.addEventListener('click', resetAll);
 
-  const rackList = document.getElementById('rackList');
-  const budgetList = document.getElementById('budgetList');
-  const savedNote = document.getElementById('savedNote');
-
-  const rackStatusLabel = { 'not-started': 'Not started', 'in-progress': 'In progress', 'done': 'Done' };
-  const STATUS_RANK = { 'in-progress': 0, 'not-started': 1, 'done': 2 };
-  const budgetStatusCycle = { 'needed': 'ordered', 'ordered': 'purchased', 'purchased': 'needed' };
-  const budgetStatusLabel = { 'needed': 'Needed', 'ordered': 'Ordered', 'purchased': 'Purchased' };
-
-  function inr(n) {
-    const num = Number(n);
-    if (!n && n !== 0) return '';
-    if (isNaN(num)) return '';
-    return '₹' + num.toLocaleString('en-IN');
-  }
-
-  function computeLeafStatus(steps) {
-    const s = steps || emptySteps();
-    const doneCount = STEP_DEFS.filter(d => s[d.key]).length;
-    if (doneCount === STEP_DEFS.length) return 'done';
-    if (doneCount === 0) return 'not-started';
-    return 'in-progress';
-  }
-
-  function computeCatStatus(cat) {
-    const subs = cat.subsections || [];
-    if (subs.length === 0) return computeLeafStatus(cat.steps);
-    const statuses = subs.map(s => computeLeafStatus(s.steps));
-    if (statuses.every(s => s === 'done')) return 'done';
-    if (statuses.every(s => s === 'not-started')) return 'not-started';
-    return 'in-progress';
-  }
-
-  function sortByStatus(list, statusFn) {
-    return [...list].sort((a, b) => STATUS_RANK[statusFn(a)] - STATUS_RANK[statusFn(b)]);
-  }
-
-  function stepChips(steps) {
-    const s = steps || emptySteps();
-    return STEP_DEFS.map(d => `
-      <span class="step ${s[d.key] ? 'on' : ''}" data-action="toggle-${d.key}"><span class="dot"></span>${d.label}</span>
-    `).join('');
-  }
-
-  function renderRack() {
-    if (categories.length === 0) {
-      rackList.innerHTML = '<div class="empty">No sections yet — add your first rack category below.</div>';
-    } else {
-      const sortedCats = [...categories].sort((a, b) => (b.lastEditedAt || 0) - (a.lastEditedAt || 0));
-      rackList.innerHTML = sortedCats.map(c => {
-        const subs = c.subsections || [];
-        const hasSubs = subs.length > 0;
-        const isCollapsed = hasSubs && collapsedIds.has(c.id);
-        const aggStatus = computeCatStatus(c);
-        const doneCount = subs.filter(s => computeLeafStatus(s.steps) === 'done').length;
-        const stampLabel = `${rackStatusLabel[aggStatus]} (${doneCount}/${subs.length})`;
-        const sortedSubs = hasSubs ? sortByStatus(subs, s => computeLeafStatus(s.steps)) : [];
-        const subRows = (hasSubs && !isCollapsed) ? `
-          <div class="subsection-list" data-parent="${c.id}">
-            ${sortedSubs.map(s => `
-              <div class="sub-row" data-id="${s.id}" data-parent="${c.id}">
-                <input type="text" class="f-name" value="${escapeAttr(s.name)}" placeholder="Rack name">
-                <div class="leader"></div>
-                <span class="steps-group">${stepChips(s.steps)}</span>
-                <button class="del-btn" data-action="delete-sub" title="Remove rack">×</button>
-              </div>
-            `).join('')}
-          </div>
-        ` : '';
-        const addRackBtn = (!hasSubs || !isCollapsed)
-          ? `<button class="add-sub-btn" data-action="add-sub" data-parent="${c.id}">+ Add rack</button>`
-          : '';
-        const catStatusEl = hasSubs
-          ? `<span class="stamp ${aggStatus} auto" data-action="cycle-all" title="Cycles every rack in this section">${stampLabel}</span>`
-          : `<span class="steps-group">${stepChips(c.steps)}</span>`;
-        const collapseBtn = hasSubs
-          ? `<button class="collapse-btn" data-action="collapse" title="${isCollapsed ? 'Expand' : 'Collapse'}">${isCollapsed ? '▸' : '▾'}</button>`
-          : `<span class="collapse-spacer"></span>`;
-        return `
-          <div class="cat-block" data-id="${c.id}">
-            <div class="row cat-row" data-id="${c.id}">
-              ${collapseBtn}
-              <input type="text" class="f-name" value="${escapeAttr(c.name)}" placeholder="Section name">
-              <div class="leader"></div>
-              ${catStatusEl}
-              <input type="date" class="f-target" value="${c.target || ''}" title="Target date">
-              <button class="del-btn" data-action="delete" title="Remove section">×</button>
-            </div>
-            ${subRows}
-            ${addRackBtn}
-          </div>
-        `;
-      }).join('');
-    }
-    let totalLeaves = 0, doneLeaves = 0;
-    categories.forEach(c => {
-      const subs = c.subsections || [];
-      if (subs.length > 0) {
-        totalLeaves += subs.length;
-        doneLeaves += subs.filter(s => computeLeafStatus(s.steps) === 'done').length;
-      } else {
-        totalLeaves += 1;
-        if (computeLeafStatus(c.steps) === 'done') doneLeaves += 1;
-      }
+  const scopeMonth = document.getElementById('scopeMonth');
+  const scopeWeek = document.getElementById('scopeWeek');
+  const scopeAll = document.getElementById('scopeAll');
+  const scopeButtons = {month: scopeMonth, week: scopeWeek, all: scopeAll};
+  Object.keys(scopeButtons).forEach(key => {
+    scopeButtons[key].addEventListener('click', () => {
+      if(statsScope === key) return;
+      statsScope = key;
+      Object.keys(scopeButtons).forEach(k => {
+        scopeButtons[k].classList.toggle('active', k === key);
+        scopeButtons[k].setAttribute('aria-selected', k === key ? 'true' : 'false');
+      });
+      renderScopedStats();
     });
-    const pct = totalLeaves ? Math.round((doneLeaves / totalLeaves) * 100) : 0;
-    document.getElementById('rackMeta').textContent = `${doneLeaves} of ${totalLeaves} done`;
-    document.getElementById('gaugeFill').style.width = pct + '%';
-    document.getElementById('gaugeLabel').textContent = pct + '% entered';
+  });
+
+  const perfMonthSelect = document.getElementById('perfMonthSelect');
+  perfMonthSelect.addEventListener('change', () => {
+    perfSelectedMonth = perfMonthSelect.value;
+    renderPerformanceTable();
+  });
+
+  const explFrom = document.getElementById('explFrom');
+  const explTo = document.getElementById('explTo');
+  const explDay = document.getElementById('explDay');
+  const explAccount = document.getElementById('explAccount');
+  const explType = document.getElementById('explType');
+  const explCategory = document.getElementById('explCategory');
+  [explFrom, explTo, explAccount, explType, explCategory].forEach(el => {
+    el.addEventListener('change', renderExplorer);
+  });
+  explDay.addEventListener('change', () => {
+    if(!explDay.value) return;
+    explFrom.value = explDay.value;
+    explTo.value = explDay.value;
+    renderExplorer();
+  });
+  document.querySelectorAll('.explorer-presets .mini-btn').forEach(btn => {
+    btn.addEventListener('click', () => { explDay.value = ''; applyExplorerPreset(btn.dataset.preset); });
+  });
+
+  function setupCollapsible(headId, bodyId, arrowId){
+    const head = document.getElementById(headId);
+    const bodyEl = document.getElementById(bodyId);
+    const arrow = document.getElementById(arrowId);
+    head.addEventListener('click', () => {
+      const collapsed = bodyEl.classList.toggle('collapsed');
+      arrow.classList.toggle('collapsed', collapsed);
+      head.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    });
+  }
+  setupCollapsible('catSectionHead', 'catBody', 'catArrow');
+  setupCollapsible('topSectionHead', 'topBody', 'topArrow');
+
+  const catMonthSelect = document.getElementById('catMonthSelect');
+  const topMonthSelect = document.getElementById('topMonthSelect');
+  catMonthSelect.addEventListener('change', renderCategoriesForSelectedMonth);
+  topMonthSelect.addEventListener('change', renderTableForSelectedMonth);
+
+  function populateMonthSelectWithAllTime(sel){
+    const keys = Array.from(new Set(lastTxns.map(t => monthKey(t.date)))).sort().reverse();
+    const current = sel.value;
+    sel.innerHTML = '<option value="">All time</option>' + keys.map(k => '<option value="'+k+'">'+monthLabelFull(k)+'</option>').join('');
+    sel.value = keys.includes(current) ? current : '';
   }
 
-  function renderBudget() {
-    if (budgetItems.length === 0) {
-      budgetList.innerHTML = '<div class="empty">No equipment items yet — add one below.</div>';
+  function monthFilteredTxns(sel){
+    if(!sel.value) return lastTxns;
+    return lastTxns.filter(t => monthKey(t.date) === sel.value);
+  }
+
+  function renderCategoriesForSelectedMonth(){
+    renderCategories(monthFilteredTxns(catMonthSelect));
+  }
+  function renderTableForSelectedMonth(){
+    renderTable(monthFilteredTxns(topMonthSelect));
+  }
+
+  let explorerSortDesc = true;
+  const explorerSortToggle = document.getElementById('explorerSortToggle');
+  explorerSortToggle.addEventListener('click', () => {
+    explorerSortDesc = !explorerSortDesc;
+    explorerSortToggle.textContent = explorerSortDesc ? 'Newest first ↓' : 'Oldest first ↑';
+    renderExplorer();
+  });
+
+  document.getElementById('explorerDownloadExcel').addEventListener('click', downloadExplorerExcel);
+  document.getElementById('explorerDownloadPdf').addEventListener('click', downloadExplorerPDF);
+
+  const stopPrinting = () => document.body.classList.remove('printing-explorer');
+  window.addEventListener('afterprint', stopPrinting);
+
+  function resetAll(){
+    rawRows = []; headers = []; currentMapping = {}; lastTxns = []; perfSelectedMonth = null;
+    fileInput.value = '';
+    fileStatus.classList.remove('show');
+    dropzone.classList.remove('collapsed');
+    mapAssumption.classList.remove('show');
+    dashboard.classList.remove('show');
+    parseError.classList.remove('show');
+    perfMonthSelect.innerHTML = '';
+    document.getElementById('trendChart').innerHTML = '';
+    hideBalance();
+    document.getElementById('receivablesSection').style.display = 'none';
+    document.getElementById('receivablesBody').innerHTML = '';
+    document.getElementById('receivablesNote').textContent = '';
+    explFrom.value = ''; explTo.value = ''; explDay.value = '';
+    explAccount.innerHTML = '<option value="">All accounts</option>';
+    explType.innerHTML = '<option value="">All types</option>';
+    explCategory.innerHTML = '<option value="">All categories</option>';
+    document.getElementById('explorerBody').innerHTML = '';
+    document.getElementById('explorerSummary').textContent = '';
+    document.getElementById('explorerMoreNote').textContent = '';
+    document.getElementById('explorerError').classList.remove('show');
+    explorerSortDesc = true;
+    explorerSortToggle.textContent = 'Newest first ↓';
+    catMonthSelect.innerHTML = '<option value="">All time</option>';
+    topMonthSelect.innerHTML = '<option value="">All time</option>';
+    document.getElementById('catList').innerHTML = '';
+    document.getElementById('txnBody').innerHTML = '';
+  }
+
+  function showError(msg){
+    parseError.textContent = msg;
+    parseError.classList.add('show');
+  }
+
+  function handleFile(file){
+    parseError.classList.remove('show');
+    const name = file.name.toLowerCase();
+    fnameEl.textContent = file.name;
+    fmetaEl.textContent = (file.size/1024).toFixed(1) + ' KB';
+    fileStatus.classList.add('show');
+    dropzone.classList.add('collapsed');
+
+    if(name.endsWith('.csv')){
+      if(typeof Papa === 'undefined'){
+        showError('The CSV reading library failed to load from the CDN. Check your connection and reload the page, then try again.');
+        return;
+      }
+      Papa.parse(file, {
+        header:true,
+        skipEmptyLines:true,
+        complete: res => { try{ ingest(res.data); computeBalance(null); }catch(err){ showError('Could not read that CSV: '+err.message); } },
+        error: err => showError('Could not read that CSV: '+err.message)
+      });
+    } else if(name.endsWith('.xlsx') || name.endsWith('.xls')){
+      if(typeof XLSX === 'undefined'){
+        showError('The spreadsheet reading library failed to load from the CDN. Check your connection and reload the page, then try again.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = e => {
+        try{
+          const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellNF:true});
+          const sheetName = wb.SheetNames[0];
+          const sheet = wb.Sheets[sheetName];
+          const json = XLSX.utils.sheet_to_json(sheet, {defval:''});
+          fixDateFormattedTextCells(sheet, json, guessDateHeader(Object.keys(json[0] || {})));
+
+          const balanceSheetName = wb.SheetNames.find(n => /data\s*entry/i.test(n));
+          const balanceJson = balanceSheetName ? XLSX.utils.sheet_to_json(wb.Sheets[balanceSheetName], {defval:''}) : null;
+
+          if(wb.SheetNames.length > 1){
+            fmetaEl.textContent += ' — using sheet "'+sheetName+'"' + (balanceSheetName ? ' (+ "'+balanceSheetName+'" for balance)' : ' (other tabs ignored)');
+          }
+          ingest(json);
+          computeBalance(balanceJson);
+        }catch(err){ showError('Could not read that spreadsheet: '+err.message); }
+      };
+      reader.onerror = () => showError('Could not read that file.');
+      reader.readAsArrayBuffer(file);
     } else {
-      budgetList.innerHTML = budgetItems.map(b => `
-        <div class="row" data-id="${b.id}" data-kind="budget">
-          <input type="text" class="f-name" value="${escapeAttr(b.name)}" placeholder="Item">
-          <div class="leader"></div>
-          <span class="money-field">est<input type="number" class="f-est" value="${b.est}" min="0" placeholder="0"></span>
-          <span class="money-field">actual<input type="number" class="f-actual" value="${b.actual}" min="0" placeholder="0"></span>
-          <span class="stamp ${b.status}" data-action="cycle">${budgetStatusLabel[b.status]}</span>
-          <button class="del-btn" data-action="delete" title="Remove">×</button>
-        </div>
-      `).join('');
+      showError('Unsupported file type. Please upload a .csv, .xlsx, or .xls file.');
     }
-    updateTotals();
   }
 
-  function updateTotals() {
-    const estTotal = budgetItems.reduce((s, b) => s + (Number(b.est) || 0), 0);
-    const actualTotal = budgetItems.reduce((s, b) => s + (Number(b.actual) || 0), 0);
-    const remaining = Math.max(estTotal - actualTotal, 0);
-    document.getElementById('estTotal').textContent = inr(estTotal) || '₹0';
-    document.getElementById('actualTotal').textContent = inr(actualTotal) || '₹0';
-    document.getElementById('remainingTotal').textContent = inr(remaining) || '₹0';
+  function ingest(rows){
+    rows = rows.map(normalizeKeys).filter(r => Object.values(r).some(v => String(v).trim() !== ''));
+    if(rows.length === 0){ showError('No data rows found in that file.'); return; }
+    rawRows = rows;
+    headers = Object.keys(rows[0]);
+    currentMapping = detectColumns(headers);
+    computeDashboard();
   }
 
-  function escapeAttr(s) {
-    return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  function normalizeKeys(row){
+    const out = {};
+    Object.keys(row).forEach(k => { out[String(k).trim()] = row[k]; });
+    return out;
   }
 
-  function queueSave() {
-    savedNote.textContent = 'Saving…';
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(async () => {
-      try {
-        await window.storage.set(RACK_KEY, JSON.stringify(categories));
-        await window.storage.set(BUDGET_KEY, JSON.stringify(budgetItems));
-        const t = new Date();
-        savedNote.textContent = 'Saved ' + t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      } catch (e) {
-        savedNote.textContent = 'Could not save — changes may be lost';
-        console.error('Storage error', e);
+  /* ---------------- column detection ---------------- */
+
+  function detectColumns(hdrs){
+    let pool = [...hdrs];
+    const pick = patterns => {
+      for(const p of patterns){
+        const idx = pool.findIndex(h => p.test(h));
+        if(idx !== -1){ const v = pool[idx]; pool.splice(idx,1); return v; }
       }
-    }, 450);
+      return null;
+    };
+    const date = pick(PATTERNS.date);
+    const credit = pick(PATTERNS.credit);
+    const debit = pick(PATTERNS.debit);
+    const amount = (credit || debit) ? null : pick(PATTERNS.amount);
+    const type = pick(PATTERNS.type);
+    const category = pick(PATTERNS.category);
+    const description = pick(PATTERNS.description);
+    const account = pick(PATTERNS.account);
+    const share = pick(PATTERNS.share);
+    return {date, amount, credit, debit, type, category, description, account, share};
   }
 
-  // event delegation — rack (category rows + nested sub-rack rows)
-  rackList.addEventListener('input', (e) => {
-    const subRow = e.target.closest('.sub-row');
-    if (subRow) {
-      const cat = categories.find(c => c.id === subRow.dataset.parent);
-      const sub = cat && (cat.subsections || []).find(s => s.id === subRow.dataset.id);
-      if (sub && e.target.classList.contains('f-name')) sub.name = e.target.value;
-      if (cat) cat.lastEditedAt = Date.now();
-      queueSave();
-      return;
+  function guessDateHeader(hdrs){
+    for(const p of PATTERNS.date){
+      const found = hdrs.find(h => p.test(h));
+      if(found) return found;
     }
-    const catRow = e.target.closest('.cat-row');
-    if (!catRow) return;
-    const item = categories.find(c => c.id === catRow.dataset.id);
-    if (!item) return;
-    if (e.target.classList.contains('f-name')) item.name = e.target.value;
-    if (e.target.classList.contains('f-target')) item.target = e.target.value;
-    item.lastEditedAt = Date.now();
-    queueSave();
-  });
+    return null;
+  }
 
-  rackList.addEventListener('click', (e) => {
-    const action = e.target.closest('[data-action]') ? e.target.closest('[data-action]').dataset.action : null;
-    const actionEl = e.target.closest('[data-action]');
-    if (!action) return;
+  function isDateFormatCode(fmt){
+    if(!fmt) return false;
+    const f = String(fmt).toLowerCase();
+    if(f === 'general') return false;
+    return /[hmsdy]/.test(f);
+  }
 
-    if (action === 'add-sub') {
-      const cat = categories.find(c => c.id === actionEl.dataset.parent);
-      if (!cat) return;
-      if (!cat.subsections) cat.subsections = [];
-      const newSub = { id: uid(), name: '', steps: emptySteps() };
-      cat.subsections.push(newSub);
-      cat.lastEditedAt = Date.now();
-      renderRack();
-      const focusInput = rackList.querySelector(`.sub-row[data-id="${newSub.id}"] .f-name`);
-      if (focusInput) focusInput.focus();
-      queueSave();
-      return;
+  // Some cells outside the main date column can themselves be date-formatted —
+  // e.g. a date typed into a free-text Note/Description field. Left alone, those
+  // come through sheet_to_json as a bare Excel serial number ("46219") since we
+  // don't use cellDates. Swap those specific cells for SheetJS's own pre-rendered
+  // display text (cell.w) instead — pure number-to-text formatting, no Date object
+  // or timezone involved, so it can't reintroduce the timestamp bug.
+  function fixDateFormattedTextCells(sheet, json, skipHeader){
+    if(!sheet['!ref']) return;
+    const range = XLSX.utils.decode_range(sheet['!ref']);
+    const headerRow = range.s.r;
+    const headerNames = {};
+    for(let c = range.s.c; c <= range.e.c; c++){
+      const cell = sheet[XLSX.utils.encode_cell({r:headerRow, c})];
+      if(cell && cell.v !== undefined && cell.v !== '') headerNames[c] = String(cell.v).trim();
     }
-
-    if (action === 'delete-sub') {
-      const subRow = actionEl.closest('.sub-row');
-      if (!subRow) return;
-      const cat = categories.find(c => c.id === subRow.dataset.parent);
-      if (!cat) return;
-      cat.subsections = (cat.subsections || []).filter(s => s.id !== subRow.dataset.id);
-      cat.lastEditedAt = Date.now();
-      renderRack();
-      queueSave();
-      return;
-    }
-
-    if (action === 'collapse') {
-      const catRow = actionEl.closest('.cat-row');
-      const cat = catRow && categories.find(c => c.id === catRow.dataset.id);
-      if (!cat) return;
-      if (collapsedIds.has(cat.id)) collapsedIds.delete(cat.id); else collapsedIds.add(cat.id);
-      renderRack();
-      return;
-    }
-
-    if (action.indexOf('toggle-') === 0) {
-      const field = action.slice(7);
-      if (!STEP_DEFS.some(d => d.key === field)) return;
-      const subRow = actionEl.closest('.sub-row');
-      if (subRow) {
-        const cat = categories.find(c => c.id === subRow.dataset.parent);
-        const sub = cat && (cat.subsections || []).find(s => s.id === subRow.dataset.id);
-        if (sub) {
-          sub.steps = sub.steps || emptySteps();
-          sub.steps[field] = !sub.steps[field];
-        }
-        if (cat) cat.lastEditedAt = Date.now();
-      } else {
-        const catRow = actionEl.closest('.cat-row');
-        const cat = catRow && categories.find(c => c.id === catRow.dataset.id);
-        if (cat) {
-          cat.steps = cat.steps || emptySteps();
-          cat.steps[field] = !cat.steps[field];
-          cat.lastEditedAt = Date.now();
-        }
+    for(let r = headerRow + 1; r <= range.e.r; r++){
+      const jsonIdx = r - headerRow - 1;
+      if(!json[jsonIdx]) continue;
+      for(let c = range.s.c; c <= range.e.c; c++){
+        const headerName = headerNames[c];
+        if(!headerName || headerName === skipHeader) continue;
+        const cell = sheet[XLSX.utils.encode_cell({r, c})];
+        if(!cell || cell.t !== 'n') continue;
+        if(!isDateFormatCode(cell.z)) continue;
+        if(cell.w) json[jsonIdx][headerName] = cell.w;
       }
-      renderRack();
-      queueSave();
-      return;
     }
+  }
 
-    const catRow = actionEl.closest('.cat-row');
-    if (!catRow) return;
-    const item = categories.find(c => c.id === catRow.dataset.id);
-    if (!item) return;
+  /* ---------------- balance ---------------- */
 
-    if (action === 'cycle-all') {
-      const agg = computeCatStatus(item);
-      const subs = item.subsections || [];
-      if (agg === 'done') {
-        subs.forEach(s => { s.steps = emptySteps(); });
-      } else if (agg === 'not-started') {
-        subs.forEach(s => {
-          const ns = emptySteps();
-          ns[STEP_DEFS[0].key] = true;
-          s.steps = ns;
+  function computeBalance(rawBalanceRows){
+    hideBalance();
+
+    let rows = (rawBalanceRows || []).map(normalizeKeys).filter(r => Object.values(r).some(v => String(v).trim() !== ''));
+    if(rows.length){
+      const hdrs = Object.keys(rows[0]);
+      const map = detectColumns(hdrs);
+      if(map.date && map.amount && map.account){
+        const totals = {};
+        let maxDate = null;
+        rows.forEach(r => {
+          const acct = String(r[map.account] || '').trim();
+          if(!acct) return;
+          totals[acct] = (totals[acct] || 0) + parseAmount(r[map.amount]);
+          const d = parseDate(r[map.date]);
+          if(d && (!maxDate || d > maxDate)) maxDate = d;
         });
-      } else {
-        subs.forEach(s => {
-          const ns = emptySteps();
-          STEP_DEFS.forEach(d => { ns[d.key] = true; });
-          s.steps = ns;
-        });
-      }
-      item.lastEditedAt = Date.now();
-    } else if (action === 'delete') {
-      categories = categories.filter(c => c.id !== item.id);
-    }
-    renderRack();
-    queueSave();
-  });
-
-  document.getElementById('addCategory').addEventListener('click', () => {
-    const newCat = { id: uid(), name: '', target: '', subsections: [], steps: emptySteps(), lastEditedAt: Date.now() };
-    categories.push(newCat);
-    renderRack();
-    const focusInput = rackList.querySelector(`.cat-row[data-id="${newCat.id}"] .f-name`);
-    if (focusInput) focusInput.focus();
-    queueSave();
-  });
-
-  document.getElementById('collapseAllBtn').addEventListener('click', () => {
-    categories.forEach(c => { if ((c.subsections || []).length > 0) collapsedIds.add(c.id); });
-    renderRack();
-  });
-
-  document.getElementById('expandAllBtn').addEventListener('click', () => {
-    collapsedIds.clear();
-    renderRack();
-  });
-
-  // event delegation — budget
-  budgetList.addEventListener('input', (e) => {
-    const row = e.target.closest('.row');
-    if (!row) return;
-    const item = budgetItems.find(b => b.id === row.dataset.id);
-    if (!item) return;
-    if (e.target.classList.contains('f-name')) item.name = e.target.value;
-    if (e.target.classList.contains('f-est')) item.est = e.target.value;
-    if (e.target.classList.contains('f-actual')) item.actual = e.target.value;
-    updateTotals();
-    queueSave();
-  });
-  budgetList.addEventListener('click', (e) => {
-    const row = e.target.closest('.row');
-    if (!row) return;
-    const item = budgetItems.find(b => b.id === row.dataset.id);
-    if (!item) return;
-    if (e.target.dataset.action === 'cycle') {
-      item.status = budgetStatusCycle[item.status];
-      renderBudget();
-      queueSave();
-    } else if (e.target.dataset.action === 'delete') {
-      budgetItems = budgetItems.filter(b => b.id !== item.id);
-      renderBudget();
-      queueSave();
-    }
-  });
-  document.getElementById('addBudgetItem').addEventListener('click', () => {
-    budgetItems.push({ id: uid(), name: '', est: '', actual: '', status: 'needed' });
-    renderBudget();
-    const inputs = budgetList.querySelectorAll('.f-name');
-    if (inputs.length) inputs[inputs.length - 1].focus();
-    queueSave();
-  });
-
-  function statusToSteps(status) {
-    const o = emptySteps();
-    if (status === 'done') { o.photos = true; o.software = true; }
-    else if (status === 'in-progress') { o.photos = true; }
-    return o;
-  }
-
-  function normalizeCategories(cats) {
-    return (cats || []).map(c => ({
-      id: c.id || uid(),
-      name: c.name || '',
-      target: c.target || '',
-      steps: normalizeSteps(c.steps || statusToSteps(c.status)),
-      lastEditedAt: c.lastEditedAt || 0,
-      subsections: (c.subsections || []).map(s => ({
-        id: s.id || uid(),
-        name: s.name || '',
-        steps: normalizeSteps(s.steps || statusToSteps(s.status)),
-      })),
-    }));
-  }
-
-  function normalizeBudget(items) {
-    return (items || []).map(b => ({
-      id: b.id || uid(),
-      name: b.name || '',
-      est: b.est ?? '',
-      actual: b.actual ?? '',
-      status: b.status || 'needed',
-    }));
-  }
-
-  document.getElementById('resetBtn').addEventListener('click', async () => {
-    if (!confirm('Reset the tracker back to the starting sections and budget items? This clears everything you\'ve entered.')) return;
-    categories = seedCategories();
-    budgetItems = seedBudget();
-    renderRack();
-    renderBudget();
-    queueSave();
-  });
-
-  document.getElementById('backupBtn').addEventListener('click', () => {
-    const payload = { exportedAt: new Date().toISOString(), categories, budgetItems };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const stamp = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `janatha-upgrade-tracker-backup-${stamp}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    savedNote.textContent = 'Backup downloaded';
-  });
-
-  document.getElementById('restoreBtn').addEventListener('click', () => {
-    document.getElementById('restoreFile').click();
-  });
-
-  document.getElementById('restoreFile').addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result);
-        if (!data || !Array.isArray(data.categories) || !Array.isArray(data.budgetItems)) {
-          alert('This file doesn\'t look like a tracker backup.');
+        if(Object.keys(totals).length){
+          renderBalance(totals, maxDate, 'anchored');
           return;
         }
-        if (!confirm('Restore this backup? It will replace everything currently in the tracker.')) return;
-        categories = normalizeCategories(data.categories);
-        budgetItems = normalizeBudget(data.budgetItems);
-        renderRack();
-        renderBudget();
-        queueSave();
-      } catch (err) {
-        alert('Could not read that file — make sure it\'s a backup downloaded from this tracker.');
       }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  });
+    }
 
-  async function load() {
-    try {
-      const r = await window.storage.get(RACK_KEY);
-      categories = normalizeCategories(r && r.value ? JSON.parse(r.value) : seedCategories());
-    } catch (e) {
-      categories = seedCategories();
+    // Fall back to the primary data's own account column, if it has one —
+    // this only reflects net change over the loaded period, not a true balance.
+    // Uses rawSigned (not signed) so split adjustments never distort a balance.
+    if(currentMapping.account && lastTxns.length){
+      const totals = {};
+      let maxDate = null;
+      lastTxns.forEach(t => {
+        if(!t.account) return;
+        totals[t.account] = (totals[t.account] || 0) + t.rawSigned;
+        if(!maxDate || t.date > maxDate) maxDate = t.date;
+      });
+      if(Object.keys(totals).length){
+        renderBalance(totals, maxDate, 'relative');
+      }
     }
-    try {
-      const b = await window.storage.get(BUDGET_KEY);
-      budgetItems = normalizeBudget(b && b.value ? JSON.parse(b.value) : seedBudget());
-    } catch (e) {
-      budgetItems = seedBudget();
-    }
-    renderRack();
-    renderBudget();
-    savedNote.textContent = 'Loaded';
   }
 
-  load();
+  function renderBalance(totals, asOfDate, mode){
+    const section = document.getElementById('balanceSection');
+    const row = document.getElementById('balanceRow');
+    const note = document.getElementById('balanceNote');
+    row.innerHTML = '';
+
+    const names = Object.keys(totals).sort();
+    let grand = 0;
+    names.forEach(name => {
+      grand += totals[name];
+      const div = document.createElement('div');
+      div.className = 'stat-card';
+      const cls = totals[name] >= 0 ? 'in' : 'out';
+      div.innerHTML = '<div class="stat-label">'+escapeHtml(name)+'</div><div class="stat-value '+cls+'">'+fmtINR(totals[name])+'</div>';
+      row.appendChild(div);
+    });
+
+    const totalDiv = document.createElement('div');
+    totalDiv.className = 'stat-card total-row';
+    const totalCls = grand >= 0 ? 'in' : 'out';
+    totalDiv.innerHTML = '<div class="stat-label">'+(mode==='anchored' ? 'Net worth' : 'Net change')+'</div><div class="stat-value '+totalCls+'">'+fmtINR(grand)+'</div>';
+    row.appendChild(totalDiv);
+
+    const dateStr = asOfDate ? asOfDate.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '';
+    note.textContent = mode === 'anchored'
+      ? ('as of ' + dateStr)
+      : ('net change through ' + dateStr + ' — no opening balance found, so this is relative, not your true balance');
+
+    section.style.display = '';
+  }
+
+  function hideBalance(){
+    document.getElementById('balanceSection').style.display = 'none';
+    document.getElementById('balanceRow').innerHTML = '';
+    document.getElementById('balanceNote').textContent = '';
+  }
+
+  /* ---------------- split receivables ---------------- */
+
+  const RECEIVED_STORAGE_KEY = 'cashflowDashboardSplitReceived';
+
+  // Pulls a #CODE tag out of a description, e.g. "Dinner #SN0409" -> "SN0409".
+  // The # prefix keeps this unambiguous — no risk of an ordinary word in a note
+  // being mistaken for a code.
+  function extractSplitCode(description){
+    if(!description) return null;
+    const m = String(description).match(/#(\S+)/);
+    return m ? m[1].toUpperCase() : null;
+  }
+
+  function loadReceivedMap(){
+    try{
+      const raw = localStorage.getItem(RECEIVED_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveReceivedMap(map){
+    try{ localStorage.setItem(RECEIVED_STORAGE_KEY, JSON.stringify(map)); }catch(e){ /* storage unavailable — status just won't persist */ }
+  }
+
+  function splitSignature(t){
+    return [
+      t.date.toISOString().slice(0,10),
+      t.account || '',
+      t.category || '',
+      t.description || '',
+      Math.round((t.splitOriginal || 0) * 100)
+    ].join('|');
+  }
+
+  // Conservative auto-suggest: an income entry within 45 days after the expense,
+  // whose amount is close to the outstanding owed amount. Never marks anything
+  // received on its own — only surfaces a hint the person can confirm with one click.
+  function findPossibleMatch(owedTxn, owedAmount, incomePool, claimed){
+    const windowMs = 45 * 24 * 60 * 60 * 1000;
+    const tolerance = Math.max(10, owedAmount * 0.03);
+    for(let i = 0; i < incomePool.length; i++){
+      if(claimed.has(i)) continue;
+      const cand = incomePool[i];
+      const diffTime = cand.date - owedTxn.date;
+      if(diffTime < 0 || diffTime > windowMs) continue;
+      if(Math.abs(cand.amount - owedAmount) <= tolerance){
+        claimed.add(i);
+        return cand;
+      }
+    }
+    return null;
+  }
+
+  function renderReceivables(){
+    const section = document.getElementById('receivablesSection');
+    const note = document.getElementById('receivablesNote');
+    const body = document.getElementById('receivablesBody');
+    body.innerHTML = '';
+
+    const splitTxns = lastTxns.filter(t => t.isSplit);
+    if(splitTxns.length === 0){
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+
+    const receivedMap = loadReceivedMap();
+    // Exact #code matches can safely include Transfer-typed entries too — a shared
+    // code is a deliberate, unambiguous signal either way. The looser fuzzy
+    // date/amount suggestion stays Income-only, since widening that one risks
+    // mistaking an unrelated self-transfer (Union <-> Canara, say) for a repayment.
+    const codeMatchPool = lastTxns.filter(t => (t.direction === 'income' || t.direction === 'transfer') && t.code);
+    const fuzzyPool = lastTxns.filter(t => t.direction === 'income');
+    const claimed = new Set();
+    const EPS = 1; // rupee-level rounding tolerance for "fully covered"
+
+    const coded = splitTxns.filter(t => t.code);
+    const uncoded = splitTxns.filter(t => !t.code);
+
+    // Group coded splits by their exact #CODE — matched against income (or transfer)
+    // entries sharing that same code, summed in case a friend pays back in installments.
+    const groups = {};
+    coded.forEach(t => {
+      if(!groups[t.code]) groups[t.code] = { code:t.code, splits:[], owed:0, firstDate:t.date };
+      groups[t.code].splits.push(t);
+      groups[t.code].owed += (t.splitOriginal - t.amount);
+      if(t.date < groups[t.code].firstDate) groups[t.code].firstDate = t.date;
+    });
+    fuzzyPool.forEach((t, idx) => {
+      if(t.code && groups[t.code]) claimed.add(idx); // never fuzzy-suggest an already-coded income entry
+    });
+
+    const rows = [];
+
+    Object.values(groups).forEach(g => {
+      const received = codeMatchPool.filter(t => t.code === g.code).reduce((s,t)=>s+t.amount,0);
+      const manualSig = 'code:' + g.code;
+      const manuallyMarked = !!receivedMap[manualSig];
+      let status, matched;
+      if(received >= g.owed - EPS || manuallyMarked){ status = 'matched'; matched = true; }
+      else if(received > 0){ status = 'partial'; matched = false; }
+      else { status = 'pending'; matched = false; }
+      rows.push({
+        date: g.firstDate,
+        label: '#'+g.code+' ('+g.splits.length+(g.splits.length===1?' txn':' txns')+')',
+        total: g.splits.reduce((s,t)=>s+t.splitOriginal,0),
+        yourShare: g.splits.reduce((s,t)=>s+t.amount,0),
+        owed: g.owed,
+        status, matched, received, isCoded:true, code:g.code, sig: manualSig
+      });
+    });
+
+    uncoded.forEach(t => {
+      const owed = t.splitOriginal - t.amount;
+      const sig = splitSignature(t);
+      const received = !!receivedMap[sig];
+      rows.push({
+        date: t.date,
+        label: t.category + (t.description ? ' — '+t.description : ''),
+        total: t.splitOriginal,
+        yourShare: t.amount,
+        owed,
+        status: received ? 'matched' : 'pending',
+        matched: received,
+        received: received ? owed : 0,
+        isCoded:false, sig, txn:t
+      });
+    });
+
+    rows.sort((a,b) => a.date - b.date); // oldest first — longest overdue at top
+
+    let pendingCount = 0, pendingTotal = 0;
+
+    rows.forEach(r => {
+      if(!r.matched){ pendingCount++; pendingTotal += (r.owed - (r.received||0)); }
+
+      const tr = document.createElement('tr');
+      let statusHtml, actionHtml;
+
+      if(r.matched){
+        statusHtml = '<span class="recv-status received">'+(r.isCoded ? 'MATCHED' : 'RECEIVED')+'</span>' +
+          (r.isCoded ? '<span class="recv-match">via code, '+fmtINR(r.received)+' in</span>' : '');
+        actionHtml = '<button type="button" class="recv-btn undo" data-sig="'+escapeHtml(r.sig)+'" data-action="undo">Undo</button>';
+      } else if(r.status === 'partial'){
+        statusHtml = '<span class="recv-status pending">PARTIAL</span>' +
+          '<span class="recv-match">'+fmtINR(r.received)+' of '+fmtINR(r.owed)+' in via code so far</span>';
+        actionHtml = '<button type="button" class="recv-btn" data-sig="'+escapeHtml(r.sig)+'" data-action="mark">Mark rest received</button>';
+      } else {
+        let matchHint = '';
+        if(!r.isCoded){
+          const match = findPossibleMatch(r.txn, r.owed, fuzzyPool, claimed);
+          if(match) matchHint = '<span class="recv-match">possible match: '+fmtINR(match.amount)+' in on '+match.date.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+(match.description?' — '+escapeHtml(match.description):'')+'</span>';
+        } else {
+          matchHint = '<span class="recv-match">watching for income entries tagged #'+escapeHtml(r.code)+'</span>';
+        }
+        statusHtml = '<span class="recv-status pending">PENDING</span>' + matchHint;
+        actionHtml = '<button type="button" class="recv-btn" data-sig="'+escapeHtml(r.sig)+'" data-action="mark">Mark received</button>';
+      }
+
+      tr.innerHTML =
+        '<td>'+r.date.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'})+'</td>'+
+        '<td>'+escapeHtml(r.label)+'</td>'+
+        '<td class="amt-cell">'+fmtINR(r.total)+'</td>'+
+        '<td class="amt-cell">'+fmtINR(r.yourShare)+'</td>'+
+        '<td class="amt-cell val-out">'+fmtINR(r.owed)+'</td>'+
+        '<td>'+statusHtml+'</td>'+
+        '<td>'+actionHtml+'</td>';
+      body.appendChild(tr);
+    });
+
+    note.textContent = pendingCount
+      ? (pendingCount + ' pending · ' + fmtINR(pendingTotal) + ' owed to you')
+      : 'all caught up';
+
+    body.querySelectorAll('.recv-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sig = btn.dataset.sig;
+        const map = loadReceivedMap();
+        if(btn.dataset.action === 'mark'){ map[sig] = true; } else { delete map[sig]; }
+        saveReceivedMap(map);
+        renderReceivables();
+      });
+    });
+  }
+
+  /* ---------------- parsing helpers ---------------- */
+
+  function parseDate(v){
+    // We deliberately don't ask SheetJS for cellDates — its own serial-to-Date
+    // conversion turned out to be sensitive to the browser's timezone and produces
+    // wrong results for fractional-hour offsets like IST (+5:30). Excel date cells
+    // come through here as plain serial numbers instead, which we convert ourselves
+    // with pure UTC-epoch math (timezone-independent), then re-anchor to local time
+    // components so downstream local getters (getDate, toLocaleDateString, etc.)
+    // read the correct calendar day in any browser, in any timezone.
+    if(v instanceof Date && !isNaN(v)){
+      return new Date(v.getUTCFullYear(), v.getUTCMonth(), v.getUTCDate(), v.getUTCHours(), v.getUTCMinutes(), v.getUTCSeconds());
+    }
+    if(typeof v === 'number'){
+      const epoch = new Date(Date.UTC(1899,11,30));
+      const ms = v * 24*60*60*1000;
+      const dt = new Date(epoch.getTime() + ms);
+      if(isNaN(dt)) return null;
+      return new Date(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate(), dt.getUTCHours(), dt.getUTCMinutes(), dt.getUTCSeconds());
+    }
+    const s = String(v).trim();
+    if(!s) return null;
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(iso){
+      // Date-only ISO strings are also parsed as UTC by the native Date constructor —
+      // build it from local parts directly instead of going through new Date(s).
+      const d = new Date(parseInt(iso[1],10), parseInt(iso[2],10)-1, parseInt(iso[3],10));
+      if(!isNaN(d)) return d;
+    }
+    const m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+    if(m){
+      let a = parseInt(m[1],10), b = parseInt(m[2],10), y = parseInt(m[3],10);
+      if(y < 100) y += 2000;
+      let day, month;
+      if(a > 12) { day = a; month = b; }
+      else if(b > 12) { day = b; month = a; }
+      else { day = a; month = b; } // default DD/MM/YYYY
+      const d = new Date(y, month-1, day);
+      return isNaN(d) ? null : d;
+    }
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+  }
+
+  function parseAmount(v){
+    if(v === null || v === undefined || v === '') return 0;
+    if(typeof v === 'number') return v;
+    let s = String(v).replace(/[₹,]/g,'').replace(/rs\.?/gi,'').replace(/inr/gi,'').trim();
+    s = s.replace(/[^0-9.\-]/g,'');
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function fmtINR(n){
+    const sign = n < 0 ? '-' : '';
+    return sign + '₹' + Math.abs(Math.round(n)).toLocaleString('en-IN');
+  }
+
+  const MONTH_NAMES_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function monthKey(d){
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  }
+  function monthLabel(key){
+    const [y,m] = key.split('-');
+    const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return names[parseInt(m,10)-1] + " '" + y.slice(2);
+  }
+  function monthLabelFull(key){
+    const [y,m] = key.split('-');
+    return MONTH_NAMES_FULL[parseInt(m,10)-1] + ' ' + y;
+  }
+
+  function weekStart(d){
+    const dt = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const day = dt.getDay(); // 0=Sun..6=Sat
+    const diff = (day === 0) ? 6 : day - 1; // days since Monday
+    dt.setDate(dt.getDate() - diff);
+    return dt;
+  }
+  function weekKey(d){
+    const s = weekStart(d);
+    return s.getFullYear() + '-' + String(s.getMonth()+1).padStart(2,'0') + '-' + String(s.getDate()).padStart(2,'0');
+  }
+  function weekLabel(key){
+    const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const [y,m,day] = key.split('-').map(n=>parseInt(n,10));
+    const s = new Date(y, m-1, day);
+    const e = new Date(s); e.setDate(e.getDate()+6);
+    if(s.getMonth() === e.getMonth()){
+      return s.getDate()+'–'+e.getDate()+' '+names[s.getMonth()];
+    }
+    return s.getDate()+' '+names[s.getMonth()]+' – '+e.getDate()+' '+names[e.getMonth()];
+  }
+
+  /* ---------------- build transactions + dashboard ---------------- */
+
+  function buildTransactions(){
+    const m = currentMapping;
+    const usingSplit = !!(m.credit || m.debit);
+    const noDirectionInfo = !usingSplit && !m.type;
+    const txns = [];
+
+    rawRows.forEach(row => {
+      const date = m.date ? parseDate(row[m.date]) : null;
+      if(!date) return;
+
+      let amount = 0, direction = null;
+
+      if(usingSplit){
+        const c = m.credit ? parseAmount(row[m.credit]) : 0;
+        const d = m.debit ? parseAmount(row[m.debit]) : 0;
+        if(c > 0){ amount = c; direction = 'income'; }
+        else if(d > 0){ amount = d; direction = 'expense'; }
+        else return;
+      } else {
+        const raw = m.amount ? parseAmount(row[m.amount]) : 0;
+        if(raw === 0) return;
+        if(m.type){
+          const t = String(row[m.type] || '').toLowerCase();
+          if(/transfer/.test(t)){
+            direction = 'transfer';
+          } else if(/in\b|credit|income|deposit/.test(t)){
+            direction = 'income';
+          } else {
+            direction = 'expense';
+          }
+          amount = Math.abs(raw);
+        } else if(raw < 0){
+          direction = 'expense'; amount = Math.abs(raw);
+        } else {
+          direction = 'expense'; amount = raw; // default assumption, flagged in UI
+        }
+      }
+
+      if(amount <= 0) return;
+
+      const rawAmount = amount;
+      const rawSigned = direction==='income' ? amount : (direction==='expense' ? -amount : (m.amount ? parseAmount(row[m.amount]) : amount));
+
+      let finalAmount = rawAmount, finalSigned = rawSigned, isSplit = false, splitOriginal = null;
+      if(direction === 'expense' && m.share){
+        const shareRaw = row[m.share];
+        const hasShare = shareRaw !== null && shareRaw !== undefined && String(shareRaw).trim() !== '';
+        if(hasShare){
+          const shareVal = Math.abs(parseAmount(shareRaw));
+          if(shareVal > 0){
+            isSplit = true;
+            splitOriginal = rawAmount;
+            finalAmount = shareVal;
+            finalSigned = -shareVal;
+          }
+        }
+      }
+
+      const description = m.description ? String(row[m.description] || '').trim() : '';
+
+      txns.push({
+        date,
+        amount: finalAmount,
+        rawAmount,
+        signed: finalSigned,
+        rawSigned,
+        isSplit,
+        splitOriginal,
+        isReimbursement: false,
+        direction,
+        rawType: m.type ? String(row[m.type] || '').trim() : null,
+        category: (m.category && row[m.category]) ? String(row[m.category]).trim() : 'Uncategorized',
+        description,
+        code: extractSplitCode(description),
+        account: m.account ? String(row[m.account] || '').trim() : null
+      });
+    });
+
+    // A #code shared with a real split group means this income is a friend paying
+    // you back — not new income. Flag it so totals don't double-count money that
+    // was already excluded from expenses when you fronted the bill.
+    const splitCodes = new Set(txns.filter(t => t.isSplit && t.code).map(t => t.code));
+    txns.forEach(t => {
+      if(t.direction === 'income' && t.code && splitCodes.has(t.code)) t.isReimbursement = true;
+    });
+
+    txns.sort((a,b) => a.date - b.date);
+    return {txns, noDirectionInfo};
+  }
+
+  function computeDashboard(){
+    if(!currentMapping.date || (!currentMapping.amount && !currentMapping.credit && !currentMapping.debit)){
+      dashboard.classList.remove('show');
+      mapAssumption.classList.remove('show');
+      showError('Could not automatically find a Date column and an Amount (or Credit/Debit) column in this file. Columns found: ' + headers.join(', ') + '. Try renaming the relevant columns to something like "Date" and "Amount" and re-uploading.');
+      return;
+    }
+
+    const {txns, noDirectionInfo} = buildTransactions();
+    lastTxns = txns;
+    if(txns.length === 0){
+      dashboard.classList.remove('show');
+      showError('No usable rows found — check that the file has a valid Date and Amount in each row.');
+      return;
+    }
+    parseError.classList.remove('show');
+
+    mapAssumption.classList.toggle('show', noDirectionInfo);
+    if(noDirectionInfo){
+      mapAssumption.textContent = 'No income/expense signal found — treating every row as an expense. Add a column like "Income / Expense" or "Type" to this ledger if it also logs money coming in.';
+    }
+
+    dashboard.classList.add('show');
+
+    renderScopedStats();
+    renderReceivables();
+    renderTrend(txns);
+    populatePerfMonthSelect();
+    renderPerformanceTable();
+    populateMonthSelectWithAllTime(catMonthSelect);
+    populateMonthSelectWithAllTime(topMonthSelect);
+    renderCategoriesForSelectedMonth();
+    renderTableForSelectedMonth();
+    populateExplorerFilters();
+    applyExplorerPreset('month');
+  }
+
+  function renderScopedStats(){
+    const txns = lastTxns;
+    const now = new Date();
+    let filtered, periodLabel;
+
+    if(statsScope === 'month'){
+      filtered = txns.filter(t => t.date.getFullYear()===now.getFullYear() && t.date.getMonth()===now.getMonth());
+      periodLabel = monthLabelFull(monthKey(now));
+    } else if(statsScope === 'week'){
+      const nowWeekKey = weekKey(now);
+      filtered = txns.filter(t => weekKey(t.date) === nowWeekKey);
+      periodLabel = weekLabel(nowWeekKey);
+    } else {
+      filtered = txns;
+      periodLabel = txns.length
+        ? txns[0].date.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) + ' – ' + txns[txns.length-1].date.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})
+        : '';
+    }
+
+    const totalIncome = filtered.filter(t=>t.direction==='income' && !t.isReimbursement).reduce((s,t)=>s+t.amount,0);
+    const totalExpense = filtered.filter(t=>t.direction==='expense').reduce((s,t)=>s+t.amount,0);
+    const net = totalIncome - totalExpense;
+    const savingsRate = totalIncome > 0 ? (net/totalIncome*100) : null;
+
+    document.getElementById('rangeNote').textContent = filtered.length
+      ? periodLabel + ' · ' + filtered.length + ' entries'
+      : periodLabel + ' · no entries yet';
+
+    const transferTxns = filtered.filter(t=>t.direction==='transfer');
+    const transferNote = document.getElementById('transferNote');
+    if(transferTxns.length){
+      const transferNet = transferTxns.reduce((s,t)=>s+t.signed,0);
+      transferNote.textContent = transferTxns.length + ' entries tagged as a transfer type (moving money between your own accounts) were left out of the totals above — net ' + fmtINR(transferNet) + ' across them. They still show up in the largest-entries table, marked XFER.';
+      transferNote.classList.add('show');
+    } else {
+      transferNote.classList.remove('show');
+    }
+
+    const splitTxns = filtered.filter(t=>t.isSplit);
+    const reimbTxns = filtered.filter(t=>t.isReimbursement);
+    const splitNote = document.getElementById('splitNote');
+    if(splitTxns.length || reimbTxns.length){
+      const parts = [];
+      if(splitTxns.length){
+        const excluded = splitTxns.reduce((s,t)=>s+(t.splitOriginal - t.amount),0);
+        parts.push(splitTxns.length + ' split transaction' + (splitTxns.length===1?'':'s') + ' counted only your share — ' + fmtINR(excluded) + ' owed by others was left out of expenses');
+      }
+      if(reimbTxns.length){
+        const reimbTotal = reimbTxns.reduce((s,t)=>s+t.amount,0);
+        parts.push(reimbTxns.length + ' repayment' + (reimbTxns.length===1?'':'s') + ' totaling ' + fmtINR(reimbTotal) + ' left out of income (it\'s your own money coming back, not new income)');
+      }
+      splitNote.textContent = parts.join(' · ') + '. Your account balance still reflects the real amounts either way.';
+      splitNote.classList.add('show');
+    } else {
+      splitNote.classList.remove('show');
+    }
+
+    renderStats(totalIncome, totalExpense, net, savingsRate);
+  }
+
+  function renderStats(income, expense, net, savingsRate){
+    const statRow = document.getElementById('statRow');
+    statRow.innerHTML = '';
+    const cards = [
+      {label:'Money in', value:fmtINR(income), cls:'in'},
+      {label:'Money out', value:fmtINR(expense), cls:'out'},
+      {label:'Net', value:fmtINR(net), cls: net>=0 ? 'in':'out'},
+      {label:'Savings rate', value: savingsRate===null ? '—' : savingsRate.toFixed(1)+'%', cls: (savingsRate!==null && savingsRate>=0) ? 'in':'out', sub: savingsRate===null ? 'no income logged' : null}
+    ];
+    cards.forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'stat-card';
+      div.innerHTML = '<div class="stat-label">'+c.label+'</div><div class="stat-value '+c.cls+'">'+c.value+'</div>' + (c.sub ? '<div class="stat-sub">'+c.sub+'</div>' : '');
+      statRow.appendChild(div);
+    });
+  }
+
+  function populatePerfMonthSelect(){
+    const keys = Array.from(new Set(lastTxns.map(t => monthKey(t.date)))).sort().reverse();
+    perfMonthSelect.innerHTML = '';
+    keys.forEach(k => {
+      const opt = document.createElement('option');
+      opt.value = k;
+      opt.textContent = monthLabelFull(k);
+      perfMonthSelect.appendChild(opt);
+    });
+    if(keys.length === 0){ perfSelectedMonth = null; return; }
+    const currentKey = monthKey(new Date());
+    if(!perfSelectedMonth || !keys.includes(perfSelectedMonth)){
+      perfSelectedMonth = keys.includes(currentKey) ? currentKey : keys[0];
+    }
+    perfMonthSelect.value = perfSelectedMonth;
+  }
+
+  function renderPerformanceTable(){
+    const body = document.getElementById('perfBody');
+    if(!body) return;
+    body.innerHTML = '';
+    if(!perfSelectedMonth || lastTxns.length === 0){
+      body.innerHTML = '<tr><td colspan="6" style="color:var(--ink-faint);">No data for this month.</td></tr>';
+      return;
+    }
+
+    const [y, m] = perfSelectedMonth.split('-').map(Number);
+    const first = new Date(y, m-1, 1);
+    const last = new Date(y, m, 0); // last day of the selected month
+
+    // Weeks run Monday–Sunday. If the 1st isn't a Monday, anchor to the nearest
+    // preceding Monday so the first week is always a full Mon–Sun block.
+    const weeks = [];
+    let cursor = weekStart(first);
+    while(cursor <= last){
+      weeks.push(new Date(cursor));
+      const next = new Date(cursor);
+      next.setDate(next.getDate() + 7);
+      cursor = next;
+    }
+    if(weeks.length === 0){
+      body.innerHTML = '<tr><td colspan="6" style="color:var(--ink-faint);">No weeks to show.</td></tr>';
+      return;
+    }
+
+    const byWeek = {};
+    lastTxns.forEach(t => {
+      if(t.direction !== 'income' && t.direction !== 'expense') return;
+      if(t.isReimbursement) return; // a friend paying you back isn't new income
+      const k = weekKey(t.date);
+      if(!byWeek[k]) byWeek[k] = {income:0, expense:0};
+      byWeek[k][t.direction] += t.amount;
+    });
+
+    const maxTotal = Math.max(...weeks.map(w => {
+      const v = byWeek[weekKey(w)] || {income:0, expense:0};
+      return v.income + v.expense;
+    }), 1);
+
+    weeks.forEach(w => {
+      const k = weekKey(w);
+      const v = byWeek[k] || {income:0, expense:0};
+      const net = v.income - v.expense;
+      const rate = v.income > 0 ? (net/v.income*100) : null;
+      const total = v.income + v.expense;
+      const inPct = total > 0 ? (v.income/maxTotal*100) : 0;
+      const outPct = total > 0 ? (v.expense/maxTotal*100) : 0;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>'+weekLabel(k)+'</td>'+
+        '<td class="amt-cell val-in">'+fmtINR(v.income)+'</td>'+
+        '<td class="amt-cell val-out">'+fmtINR(v.expense)+'</td>'+
+        '<td class="amt-cell '+(net>=0?'val-in':'val-out')+'">'+fmtINR(net)+'</td>'+
+        '<td class="amt-cell '+(rate===null?'':(rate>=0?'val-in':'val-out'))+'">'+(rate===null?'—':rate.toFixed(0)+'%')+'</td>'+
+        '<td><div class="mix-bar"><div class="mix-in" style="width:'+inPct+'%"></div><div class="mix-out" style="width:'+outPct+'%"></div></div></td>';
+      body.appendChild(tr);
+    });
+
+    // Total row uses only transactions actually dated within this calendar month —
+    // not the sum of the weeks above, which can carry a few boundary days from
+    // the neighbouring month.
+    let monthIncome = 0, monthExpense = 0;
+    lastTxns.forEach(t => {
+      if(t.date.getFullYear() !== y || t.date.getMonth() !== m-1) return;
+      if(t.direction === 'income' && !t.isReimbursement) monthIncome += t.amount;
+      else if(t.direction === 'expense') monthExpense += t.amount;
+    });
+
+    const monthNet = monthIncome - monthExpense;
+    const totalRow = document.createElement('tr');
+    totalRow.className = 'total-row';
+    totalRow.innerHTML =
+      '<td>Total — '+monthLabelFull(perfSelectedMonth)+'</td>'+
+      '<td class="amt-cell val-in">'+fmtINR(monthIncome)+'</td>'+
+      '<td class="amt-cell val-out">'+fmtINR(monthExpense)+'</td>'+
+      '<td class="amt-cell '+(monthNet>=0?'val-in':'val-out')+'">'+fmtINR(monthNet)+'</td>'+
+      '<td class="amt-cell">—</td>'+
+      '<td>—</td>';
+    body.appendChild(totalRow);
+  }
+
+  function renderTrend(txns){
+    const container = document.getElementById('trendChart');
+    container.innerHTML = '';
+
+    const byMonth = {};
+    txns.forEach(t => {
+      if(t.direction !== 'income' && t.direction !== 'expense') return; // transfers excluded, same as totals above
+      if(t.isReimbursement) return; // a friend paying you back isn't new income
+      const k = monthKey(t.date);
+      if(!byMonth[k]) byMonth[k] = {income:0, expense:0};
+      byMonth[k][t.direction] += t.amount;
+    });
+
+    const keys = Object.keys(byMonth).sort();
+    if(keys.length === 0){
+      container.innerHTML = '<div class="trend-empty">No monthly data to chart yet.</div>';
+      return;
+    }
+
+    const maxVal = Math.max(...keys.map(k => Math.max(byMonth[k].income, byMonth[k].expense)), 1);
+    const maxBarPx = 156;
+
+    keys.forEach(k => {
+      const v = byMonth[k];
+      const inH = Math.max(v.income > 0 ? 2 : 0, Math.round((v.income/maxVal)*maxBarPx));
+      const outH = Math.max(v.expense > 0 ? 2 : 0, Math.round((v.expense/maxVal)*maxBarPx));
+
+      const col = document.createElement('div');
+      col.className = 'trend-col';
+      col.innerHTML =
+        '<div class="trend-bars">'+
+          '<div class="trend-bar in" style="height:'+inH+'px" title="'+monthLabel(k)+' — In: '+fmtINR(v.income)+'"></div>'+
+          '<div class="trend-bar out" style="height:'+outH+'px" title="'+monthLabel(k)+' — Out: '+fmtINR(v.expense)+'"></div>'+
+        '</div>'+
+        '<div class="trend-label">'+monthLabel(k)+'</div>';
+      container.appendChild(col);
+    });
+  }
+
+  function populateExplorerFilters(){
+    const accounts = Array.from(new Set(lastTxns.map(t => t.account).filter(Boolean))).sort();
+    const types = Array.from(new Set(lastTxns.map(t => t.rawType).filter(Boolean))).sort();
+    const cats = Array.from(new Set(lastTxns.map(t => t.category).filter(Boolean))).sort();
+
+    const buildOptions = (list, allLabel) => '<option value="">' + allLabel + '</option>' +
+      list.map(v => '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>').join('');
+
+    explAccount.innerHTML = buildOptions(accounts, 'All accounts');
+    explType.innerHTML = buildOptions(types, 'All types');
+    explCategory.innerHTML = buildOptions(cats, 'All categories');
+  }
+
+  function toDateInputValue(d){
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
+  function applyExplorerPreset(preset){
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let from = null, to = null;
+
+    if(preset === 'today'){
+      from = todayStart; to = todayStart;
+    } else if(preset === '7'){
+      to = todayStart; from = new Date(todayStart); from.setDate(from.getDate() - 6);
+    } else if(preset === '30'){
+      to = todayStart; from = new Date(todayStart); from.setDate(from.getDate() - 29);
+    } else if(preset === 'month'){
+      from = new Date(now.getFullYear(), now.getMonth(), 1);
+      to = new Date(now.getFullYear(), now.getMonth()+1, 0);
+    } else if(preset === 'all'){
+      if(lastTxns.length){ from = lastTxns[0].date; to = lastTxns[lastTxns.length-1].date; }
+    }
+
+    explFrom.value = from ? toDateInputValue(from) : '';
+    explTo.value = to ? toDateInputValue(to) : '';
+    renderExplorer();
+  }
+
+  function getFilteredExplorerTxns(){
+    const fromDate = explFrom.value ? new Date(explFrom.value + 'T00:00:00') : null;
+    const toDate = explTo.value ? new Date(explTo.value + 'T23:59:59') : null;
+    const acct = explAccount.value;
+    const type = explType.value;
+    const cat = explCategory.value;
+
+    return lastTxns.filter(t => {
+      if(fromDate && t.date < fromDate) return false;
+      if(toDate && t.date > toDate) return false;
+      if(acct && t.account !== acct) return false;
+      if(type && t.rawType !== type) return false;
+      if(cat && t.category !== cat) return false;
+      return true;
+    }).sort((a,b) => explorerSortDesc ? (b.date - a.date) : (a.date - b.date));
+  }
+
+  function renderExplorer(){
+    const body = document.getElementById('explorerBody');
+    const summary = document.getElementById('explorerSummary');
+    const moreNote = document.getElementById('explorerMoreNote');
+    body.innerHTML = '';
+
+    const filtered = getFilteredExplorerTxns();
+
+    if(filtered.length === 0){
+      summary.textContent = 'No transactions match these filters.';
+      moreNote.textContent = '';
+      return;
+    }
+
+    let inSum = 0, outSum = 0;
+    filtered.forEach(t => { if(t.signed >= 0) inSum += t.signed; else outSum += -t.signed; });
+    summary.textContent = filtered.length + ' transactions · In ' + fmtINR(inSum) + ' · Out ' + fmtINR(outSum) + ' · Net ' + fmtINR(inSum-outSum);
+
+    const CAP = 300;
+    let prevDateKey = null;
+    filtered.slice(0, CAP).forEach((t, i) => {
+      const cls = t.signed >= 0 ? 'val-in' : 'val-out';
+      const dateKey = t.date.getFullYear()+'-'+t.date.getMonth()+'-'+t.date.getDate();
+      const tr = document.createElement('tr');
+      if(i > 0 && dateKey !== prevDateKey) tr.classList.add('day-start');
+      prevDateKey = dateKey;
+      const amtCell = t.isSplit
+        ? '<td class="amt-cell '+cls+'" title="Full amount was '+fmtINR(t.splitOriginal)+' — '+fmtINR(t.amount)+' was your share">'+fmtINR(t.signed)+' <span class="split-badge">SPLIT</span></td>'
+        : '<td class="amt-cell '+cls+'">'+fmtINR(t.signed)+'</td>';
+      tr.innerHTML =
+        '<td class="idx-col">'+(i+1)+'</td>'+
+        '<td>'+t.date.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'})+'</td>'+
+        '<td>'+escapeHtml(t.account || '—')+'</td>'+
+        '<td>'+escapeHtml(t.rawType || '—')+'</td>'+
+        '<td>'+escapeHtml(t.category)+'</td>'+
+        '<td>'+escapeHtml(t.description || '—')+'</td>'+
+        amtCell;
+      body.appendChild(tr);
+    });
+
+    moreNote.textContent = filtered.length > CAP
+      ? ('Showing the latest '+CAP+' of '+filtered.length+' — narrow the filters to see the rest.')
+      : '';
+  }
+
+  function explorerFilterSummaryText(){
+    const bits = [];
+    if(explFrom.value || explTo.value) bits.push((explFrom.value || '…') + ' to ' + (explTo.value || '…'));
+    if(explAccount.value) bits.push('Account: ' + explAccount.value);
+    if(explType.value) bits.push('Type: ' + explType.value);
+    if(explCategory.value) bits.push('Category: ' + explCategory.value);
+    return bits.length ? bits.join(' · ') : 'All transactions';
+  }
+
+  function showExplorerError(msg){
+    const el = document.getElementById('explorerError');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function clearExplorerError(){
+    document.getElementById('explorerError').classList.remove('show');
+  }
+
+  function downloadExplorerExcel(){
+    clearExplorerError();
+    const filtered = getFilteredExplorerTxns();
+    if(filtered.length === 0){ showExplorerError('No transactions match these filters — nothing to download.'); return; }
+    if(typeof XLSX === 'undefined'){ showExplorerError('The spreadsheet library failed to load from the CDN, so Excel export isn\'t available right now. Try reloading the page.'); return; }
+
+    const data = filtered.map(t => ({
+      Date: t.date.toLocaleDateString('en-IN'),
+      Account: t.account || '',
+      Type: t.rawType || '',
+      Category: t.category,
+      Note: t.description || '',
+      Amount: Math.round(t.signed * 100) / 100,
+      Split: t.isSplit ? 'Yes' : '',
+      'Full amount (if split)': t.isSplit ? Math.round(t.splitOriginal * 100) / 100 : ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+    XLSX.writeFile(wb, 'transactions.xlsx');
+  }
+
+  function downloadExplorerPDF(){
+    clearExplorerError();
+    const filtered = getFilteredExplorerTxns();
+    if(filtered.length === 0){ showExplorerError('No transactions match these filters — nothing to download.'); return; }
+
+    let inSum = 0, outSum = 0;
+    filtered.forEach(t => { if(t.signed >= 0) inSum += t.signed; else outSum += -t.signed; });
+
+    let prevDateKey = null;
+    const rowsHtml = filtered.map((t, i) => {
+      const dateKey = t.date.getFullYear()+'-'+t.date.getMonth()+'-'+t.date.getDate();
+      const dayStart = i > 0 && dateKey !== prevDateKey;
+      prevDateKey = dateKey;
+      return '<tr class="'+(dayStart ? 'day-start' : '')+'">'+
+        '<td class="idx">'+(i+1)+'</td>'+
+        '<td class="dt">'+t.date.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+'</td>'+
+        '<td>'+escapeHtml(t.account || '')+'</td>'+
+        '<td>'+escapeHtml(t.rawType || '')+'</td>'+
+        '<td>'+escapeHtml(t.category)+'</td>'+
+        '<td>'+escapeHtml(t.description || '')+(t.isSplit ? ' <em>(split, full '+fmtINR(t.splitOriginal)+')</em>' : '')+'</td>'+
+        '<td class="amt">'+fmtINR(t.signed)+'</td>'+
+      '</tr>';
+    }).join('');
+
+    const printArea = document.getElementById('printArea');
+    printArea.innerHTML =
+      '<h2>Transactions</h2>'+
+      '<div class="print-meta">'+escapeHtml(explorerFilterSummaryText())+' · '+filtered.length+' entries · In '+fmtINR(inSum)+' · Out '+fmtINR(outSum)+' · Net '+fmtINR(inSum-outSum)+'</div>'+
+      '<table><thead><tr><th>#</th><th>Date</th><th>Account</th><th>Type</th><th>Category</th><th>Note</th><th>Amount</th></tr></thead>'+
+      '<tbody>'+rowsHtml+'</tbody></table>';
+
+    document.body.classList.add('printing-explorer');
+    window.print();
+    setTimeout(() => document.body.classList.remove('printing-explorer'), 2000);
+  }
+
+  function renderCategories(txns){
+    const byCat = {};
+    txns.filter(t=>t.direction==='expense').forEach(t => {
+      byCat[t.category] = (byCat[t.category]||0) + t.amount;
+    });
+    const entries = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const max = entries.length ? entries[0][1] : 1;
+    const catList = document.getElementById('catList');
+    catList.innerHTML = '';
+    if(entries.length === 0){
+      catList.innerHTML = '<div class="empty-state">No expense rows to break down yet.</div>';
+      return;
+    }
+    entries.forEach(([name, amt]) => {
+      const row = document.createElement('div');
+      row.className = 'cat-row';
+      const pct = Math.max(4, Math.round(amt/max*100));
+      row.innerHTML =
+        '<div class="cat-name">'+escapeHtml(name)+'</div>'+
+        '<div class="cat-track"><div class="cat-fill" style="width:'+pct+'%"></div></div>'+
+        '<div class="cat-amt">'+fmtINR(amt)+'</div>';
+      catList.appendChild(row);
+    });
+  }
+
+  function renderTable(txns){
+    const top = [...txns].sort((a,b)=>b.amount-a.amount).slice(0,10);
+    const body = document.getElementById('txnBody');
+    body.innerHTML = '';
+    top.forEach(t => {
+      const tr = document.createElement('tr');
+      const badgeLabel = t.isReimbursement ? 'REIMB' : (t.direction==='income'?'IN':(t.direction==='transfer'?'XFER':'OUT'));
+      const badgeClass = t.isReimbursement ? 'transfer' : t.direction;
+      tr.innerHTML =
+        '<td>'+t.date.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'})+'</td>'+
+        '<td>'+escapeHtml(t.category)+'</td>'+
+        '<td>'+escapeHtml(t.description||'—')+'</td>'+
+        '<td class="amt-cell">'+fmtINR(t.amount)+'</td>'+
+        '<td><span class="badge '+badgeClass+'">'+badgeLabel+'</span></td>';
+      body.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
 })();
 </script>
 </body>
