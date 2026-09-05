@@ -115,6 +115,12 @@
     margin-top: 5px;
   }
 
+  .fold-actions {
+    display: flex;
+    gap: 14px;
+    margin: 4px 0 10px;
+  }
+
   /* ledger rows */
   .row {
     display: flex;
@@ -360,6 +366,10 @@
     <div class="gauge-row">
       <div class="gauge"><div class="gauge-fill" id="gaugeFill" style="width:0%"></div></div>
       <div class="gauge-label" id="gaugeLabel">0% entered</div>
+    </div>
+    <div class="fold-actions">
+      <button class="reset-link" id="collapseAllBtn">Collapse all</button>
+      <button class="reset-link" id="expandAllBtn">Expand all</button>
     </div>
     <div id="rackList"></div>
     <button class="add-btn" id="addCategory">+ Add section</button>
@@ -844,6 +854,16 @@
     const focusInput = rackList.querySelector(`.cat-row[data-id="${newCat.id}"] .f-name`);
     if (focusInput) focusInput.focus();
     queueSave();
+  });
+
+  document.getElementById('collapseAllBtn').addEventListener('click', () => {
+    categories.forEach(c => { if ((c.subsections || []).length > 0) collapsedIds.add(c.id); });
+    renderRack();
+  });
+
+  document.getElementById('expandAllBtn').addEventListener('click', () => {
+    collapsedIds.clear();
+    renderRack();
   });
 
   // event delegation — budget
